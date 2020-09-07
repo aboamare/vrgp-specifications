@@ -24,7 +24,7 @@ Standards of particular relevance include:
 
 ## System architecture
 
-This **non-normative section** outlines how the protocol specifications are intended to be used by the various parties. This short overview also serves to delineate the scope.
+This **informative** section outlines how the protocol specifications are intended to be used by the various parties. This short overview also serves to delineate the scope.
 
 The *Vessel* is exepected to contact a Maritime *Remote Operating Centre* (abbrev *ROC*) whenever it (or its crew) decides there is reason to do so. Also, it is foreseen that in the future authorities may require vessels that enter certain designated areas to contact a prescribed ROC, not unlike current requirements to contact a VTS, or request a pilot. In any case the first step (1) is for the Vessel to inform a ROC of its readiness and capabilities for remote operations, and optionally of its need for guidance. The ROC acts as a server and acknowledges the message (1) of the Vessel. During this phase the Vessel and the ROC establish a communication channel.
 
@@ -42,7 +42,7 @@ The architecture then relies on recently developed, but well-established, protoc
 
   2. The ROC can request the Vessel to open a **WebRTC connection** for one or more of the data sources of the Vessel. So in addition to acting as the signalling server the ROC is now also a _WebRTC peer_ of the Vessel. 
 
-  3. The ROC may send adviory messages through the web socket.
+  3. The ROC may send advisory messages through the web socket.
 
   4. The Vessel or ROC inform the other party about the intent to "hang up" with a message through the web socket.
 
@@ -98,3 +98,6 @@ Hang-up
 
 
 ## References
+
+[RFC2119]
+  [Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119.txt), S. Bradner. The Internet Society, March 1997.
