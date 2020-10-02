@@ -61,17 +61,45 @@ The protocols that will be used include HTTP, Web Socket and WebRTC, and of cour
 
 
 ## Definitions
-- *vessel* 
+- *Vessel* the party that provides one or more streams of real-time data to a MOC.
+- *MOC*, the Maritime Operation Center, requests *data from* vessels and provides *advice to* vessels.
+- *MMSI*, a Marine Mobile Service Identifier as specified in [M.585-8].
 
 
 ## 1. Signalling protocol
 
-Check server certificate
-Open web socket
-Message with capabilities and request for advice
-MOC request to open WebRTC connections
+### Registration
+Vessels register with a MOC in two steps: first the vessel opens a WebSocket to the MOC, and then it sends a message with its status and capabilities.
+
+Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
+
+wss://amoc.aboamare.com/[mmsi] so a vessel with 
+
+The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web socket protocol, and the protocol part of the url MUST be "wss" [RFC8307]. The MOC SHOULD offer the registration endpoint on port 443.
+
+The Web Socket implementation used by the vessel MUST verify the TLS certificate presented by the MOC, and refuse to connect if the certificate is not valid. It is RECOMMENDED that vessel software is configured to accept only certificates issued by Certificate Authorities that are explicitly configued as such, and for which the root (or intermediate) certificates have been obtained in a secure manner (out-of-band).
+
+As soon as the web socket is open the vessel MUST send a message (see below) with:
+- *vessel* information
+- a *status* report
+- *capabilities* for real-time connections, and possibly ship control
+- requested *advice*
+
+The vessel then MUST send a status message at least every 5 seconds, but not more frequently then every 2 seconds.
+Message with capabilities and request for advice, and both an up-to-date AIS status report (AIS message type 1 or 3) as well as an AIS static data message (AIS message type 5)
+Vessel sends regular updates with position, cog, sog, heading? and status, ais message or nmea messages
+MOC request to open WebRTC connections, ice, offers (conning, radar, etc.)
 Hang-up
 
+### Messages
+
+#### capabilities
+#### guidance
+#### nmea
+#### sk
+
+#### request
+####
 
 ## 2. Real-time connections
 
@@ -101,3 +129,10 @@ Hang-up
 
 [RFC2119]
   [Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119.txt), S. Bradner. The Internet Society, March 1997.
+
+[RFC8307]
+  [Well-Known URIs for the WebSocket Protocol](https://tools.ietf.org/html/rfc8307), C. Bormann, Universitaet Bremen TZI, January 2018.
+
+[M.585-8]
+  [Recommendation ITU-R M.585-8, Assignment and use of identities in the
+maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.585-8-201910-I!!PDF-E.pdf)
