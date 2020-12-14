@@ -97,6 +97,8 @@ Hang-up
 #### guidance
 #### nmea
 #### sk
+#### predictor?
+#### route
 
 #### request
 ####
@@ -104,6 +106,7 @@ Hang-up
 ## 2. Real-time connections
 
 ### conning
+#### predictor?
 
 ### radar
 
