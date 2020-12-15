@@ -101,34 +101,40 @@ Hang-up
 #### route
 
 #### request
-####
+
 
 ## 2. Real-time connections
 
-### conning
-#### predictor?
+### 2.1. conning
+A stream of mainly fairly standard, well-established, messages in e.g. NMEA or Signal K (delta) format, following the Signal K data model.
+In addition perhaps a few additional or "new" messages for e.g.:
 
-### radar
+#### 2.1.1 predictor?
 
-### video
+#### 2.2.2 ping/time
+a dedicated message to determine the current delay? Can also be derived from some AIS messages, perhaps.
 
-### audio?
+### 2.3.radar
+
+### 2.4 video
+
+### 2.5 audio?
 
 
 ## 3. Navigation messages
 
-### conning (from Vessel to MOC)
+### 3.1 conning (from Vessel to MOC)
 
-### advice (from MOC to Vessel)
-
-
-## Security considerations
+### 3.2 advice (from MOC to Vessel)
 
 
-## Implementation considerations
+## 4. Security considerations
 
 
-## References
+## 5. Implementation considerations
+
+
+## 6. References
 
 [RFC2119]
   [Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119.txt), S. Bradner. The Internet Society, March 1997.
