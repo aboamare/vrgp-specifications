@@ -21,6 +21,7 @@ Standards of particular relevance include:
 * *NMEA*, for the message format of bridge information
 * *Asterix* for radar signals
 * general internet standards including, but not limited to, *HTTP*, *WebRTC* and *WebSockets*, and *AV1*
+* the Maritime Identity Registry[MRI] of the [*Maritime Connectivity Platform*](https://maritimeconnectivity.net/)
 
 ## System architecture
 
@@ -145,3 +146,6 @@ a dedicated message to determine the current delay? Can also be derived from som
 [M.585-8]
   [Recommendation ITU-R M.585-8, Assignment and use of identities in the
 maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.585-8-201910-I!!PDF-E.pdf)
+
+[MRI]
+   Maritime Identity Registry of the [Maritime Connectivity Platform](https://maritimeconnectivity.net/)
