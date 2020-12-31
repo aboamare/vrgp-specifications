@@ -11,7 +11,7 @@ Want to contribute? Read [CONTRIBUTING](./CONTRIBUTING.md)!
 There are various scenarios where a distant party, typically but not necessarily ashore, has an interest to obtain accurate, and detailed, information about a ship reliably and in real-time with the purpose of advising the ship in navigation. Examples include, but are not limited to, remote piloting of crewed ships, remote control of autonomous ships, disaster avoidance, etc. Commonly used procedures and technology are limited in detail (VHF verbal comms, AIS), reliability, and timeliness(AIS). However, the digitalization of bridge equipment had resulted in the availability of a wide variety of rich information, but _at the ship_. 
 Propietary solutions to export some of that information to shore-based stations exist, but due to their propietary nature these are not suitable for maritime operators other then the owner (shipping company) or certain suppliers of the shipping company (as in e.g. engine diagnostics). Likewise there have of course been propietary, or ad-hoc, means to send control commands from ashore to a vessel as in e.g. remotely controlled scale models.
 
-This specification then defines protocols, and protocol parameters, to securely expose accurate, detailed, bridge information in real-time to trusted distant parties. Any shipyard, bridge equipment provider, shipping company or maritime operator can implement support for the protocols specified here. Similarly this specification defines protocols and messages to securely send advice (messages about the navigation) to vessels. Note however, that this specification does **not** provide any guidance as to how the vessel or its Master are to process such advice. 
+This specification then defines protocols, and protocol parameters, to securely expose accurate, detailed, bridge information in real-time to trusted distant parties. Any shipyard, bridge equipment provider, shipping company or maritime operator can implement support for the protocols specified here. Similarly this specification defines protocols and messages to securely send (navigation) messages to vessels. Note however, that this specification does **not** provide any guidance as to how the vessel or its Master are to process such advice. 
 
 Whereas this document should be treated as the normative reference for the protocols described, the accompanying reference implementations should be seen as non-normative, informal, "best-effort" interpretations of this specification. However, these implementations can be used as a basis for formalized compliancy testing. It is envisioned that ship classification companies will engage in such compliancy tests and then maritime operators should use only certified implementations in actual operations.
 
@@ -27,7 +27,7 @@ Standards of particular relevance include:
 
 This **informative** section outlines how the protocol specifications are intended to be used by the various parties. This short overview also serves to delineate the scope.
 
-The *Vessel* is exepected to contact a *Maritime Operating Centre* (abbrev *MOC*) whenever it (or its crew) decides there is reason to do so. Also, it is foreseen that in the future authorities may require vessels that enter certain designated areas to contact a prescribed MOC, not unlike current requirements to contact a VTS, or request a pilot. In any case the first step (step 1) is for the Vessel to inform a MOC of its readiness and capabilities for remote operations, and optionally of its need for guidance. The MOC acts as a server and acknowledges the message (1) of the Vessel. During this phase the Vessel and the MOC establish a communication channel.
+The *Vessel* is expected to contact a *Maritime Operating Centre* (abbrev *MOC*) whenever it (or its crew) decides there is reason to do so. Also, it is foreseen that in the future authorities may require vessels that enter certain designated areas to contact a prescribed MOC, not unlike current requirements to contact a VTS, or request a pilot. In any case the first step (step 1) is for the Vessel to inform a MOC of its readiness and capabilities for remote operations, and optionally of its need for guidance. The MOC acts as a server and acknowledges the message (1) of the Vessel. During this phase the Vessel and the MOC establish a communication channel.
 
 If and when deemed apprpriate the MOC will, using this communication channel, request the Vessel to start streaming one or more *sources* (step 2) of onboard information, taking into account the needs of both the Vessel as well as the MOC. The onboard information sources that the Vessel can convey to the MOC will always include the current navigational data (_conning_ information), such as the position, heading, speed, rate of turn, etc. Vessels may also be able to stream a live radar signal, and signals from video cameras.
 
@@ -47,7 +47,7 @@ The architecture then relies on recently developed, but well-established, protoc
 
   4. The Vessel or MOC inform the other party about the intent to "hang up" with a message through the web socket.
 
-The HTTP, Web Socket and WebRTC standards already specificy most of the important lower-level connectivity aspects including, but not limmited to, negotiation of the best bit-rate (and e.g. video resolution), upgrading/downgrading live connections, end-to-end message integrity and other basic security, etc. Nevertheless the Vessel and MOC need to be in agreement on how to use these technologies _exactly_ to ensure flawless interoperability. That agreement is the scope of this specification.
+The HTTP, Web Socket and WebRTC standards already specificy most of the important lower-level connectivity aspects including, but not limited to, negotiation of the best bit-rate (and e.g. video resolution), upgrading/downgrading live connections, end-to-end message integrity and other basic security, etc. Nevertheless the Vessel and MOC need to be in agreement on how to use these technologies _exactly_ to ensure flawless interoperability. That agreement is the scope of this specification.
 
 ## Scope
 
@@ -82,44 +82,121 @@ The Web Socket implementation used by the vessel MUST verify the TLS certificate
 
 As soon as the web socket is open the vessel MUST send a message (see below) with:
 - *vessel* information
-- a *status* report
+- *navigation status* report
 - *capabilities* for real-time connections, and possibly ship control
-- requested *advice*
+- requested *guidance*
 
-The vessel then MUST send a status message at least every 5 seconds, but not more frequently then every 2 seconds.
+The vessel then MUST send a navigation status message at least every 5 seconds, but not more frequently then every 2 seconds.
 Message with capabilities and request for advice, and both an up-to-date AIS status report (AIS message type 1 or 3) as well as an AIS static data message (AIS message type 5)
 Vessel sends regular updates with position, cog, sog, heading? and status, ais message or nmea messages
 MOC request to open WebRTC connections, ice, offers (conning, radar, etc.)
 Hang-up
 
-### Messages
+## 2. Messages
+All messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. The "request" and "control" messages are slightly different in that for those messages the sender (a MOC) expects the recipient (a vessel) to _react_, albeit not necessarily with a "response" message.
 
+Messages are defined and sent in [JSON] format. One or more messages can be sent in a single JSON object. If a JSON object contains more than one message, the order in which those messages are processed cannot be guaranteed.
+
+  A single message MUST be sent as:
+  ```
+  {
+    "message name": message_content
+  }
+  ```
+
+  Mulitple MAY be sent as:
+  ```
+  {
+    "message 1 name": message_1_content,
+    "message 2 name": message_2_content,
+    "message 3 name": message_3_content
+  }
+  ```
+
+  Where _message name_ is one of the messages defined in the subsequent sections and _message_content_ is a JSON number, string, arrray, or object, as defined for each message. 
+  
+  Here an example with three messages, "capabilities", "guidance", and "nmea":
+  ```
+  {
+    "capabilities": {
+      "conning": {
+        "formats": [
+          "nmea"
+        ]
+      },
+      "camera0": {
+        "position": {
+          "fromBow": 20,
+          "fromPort": 5,
+          "aboveKeel": 10
+        },
+        "azimuth": [
+          -60,
+          60
+        ],
+        "elevation": [
+          -70,
+          50
+        ]
+      }
+    },
+    "guidance": "recommendation",
+    "nmea": "!AIVDO,1,1,,B,25Cjtd0Oj;Jp7ilG7=UkKBoB0<06,0*62"
+  }
+  ```
+
+
+#### vessel
 #### capabilities
 #### guidance
 #### nmea
 #### sk
 #### predictor?
 #### route
+#### time
+The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
+
+The message content MUST be an object with a property "sent" with as value the integer number of milliseconds since the Unix epoch at the moment the message was sent (created). 
+A recipient of a time message with only a "sent" property SHOULD as soon as possible send a copy of the message with an added "received" property that should be set to the integer number of milliseconds since the Unix epoch at the moment the message was received (processed).
+
+It is RECOMMENDED that a MOC regurlarly sends a time message to the vessel in orded to keep track of latency. The vessel will then react to a time message by sending a time message with both a sent as well as a received property. The difference between the "received" and "sent" values is the number of milliseconds it took for the message to travel from the MOC to the vessel message processor. The difference between the moment the MOC receives the message from the vessel, and the "received" value represents the time it took for the message to travel from the vessel to the MOC message processor.
+
+A party SHOULD NOT send a _time_ message more frequently than once per 5 seconds.
+
+Vessels and MOCs SHOULD synchronize their clocks (of the systems involved) to a high precision source such as a GNSS.
+
+**NOTE**: In training and other scenarios the use of computer simulated vessels is common, and a simulation may on purpose be setup to have a completely different time, i.e. at night, or in winter, etc. In such situations the MOC may choose to synchronize to the Vessel (or simulator) time. A simulated vessel MUST include the **simulated** flag in its **vessel** (registration) message.
+
+**IMPLEMENTATION CONSIDERATION**: It is envisioned that relatively simply, but useful, implementations of the vessel side of this specification can be constructed as mobile phone applications. Implementors of such are encouraged to pay close attention to clock synchronization. Mobile phones often synchronize to a mobile network provided time which can be several hundreds of milliseconds off, as compared to GNSS time. The vessel is very lilkely to have a reliable GNSS source, and the appplication could use that time source to adjust time messages, or indeed the clock of the phone.
+
+Here is an example of an exchange of time messages:
+  
+  1. a MOC sends a time message: ```{"time": {"sent": 1608550017650}}```
+
+  2. the vessel receives this 30ms later and sends: ```{"time": {"sent": 1608550017650, "received": 1608550017680}}```
+
+  3. which the MOC receives e.g. 10ms later, at 16085500176**90**. The MOC can now compute the overall round trip and adopt its actions accordingly. The overall roundtrip latency is the difference between the value of the _sent_ property and the time when the message with the _received_ property was received. In the example above this is 16085500176**90** - 16085500176**50**, or 40 ms. 
+  
+  If, but only if, the clocks of the MOC and vessel are synchronized at millisecond precision can the the latencies in both directions be determined from the differences between _received_ and _sent_, and between the reception time and _received_. 
+
+Of course the vessel may also initiate this sequence.
 
 #### request
 
 
-## 2. Real-time connections
+## 4. Real-time connections
 
-### 2.1. conning
+### 4.1. conning
 A stream of mainly fairly standard, well-established, messages in e.g. NMEA or Signal K (delta) format, following the Signal K data model.
 In addition perhaps a few additional or "new" messages for e.g.:
 
-#### 2.1.1 predictor?
+#### 4.1.1 predictor?
 
-#### 2.2.2 ping/time
-a dedicated message to determine the current delay? Can also be derived from some AIS messages, perhaps.
+### 4.3.radar
 
-### 2.3.radar
+### 4.4 video
 
-### 2.4 video
-
-### 2.5 audio?
+### 4.5 audio?
 
 
 ## 3. Navigation messages
