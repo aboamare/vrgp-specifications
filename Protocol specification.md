@@ -167,8 +167,7 @@ _Informally_, the ship should be pointing up/North. For example, a ship with a l
 ```
 Here, the bow is at 5,0 (X at half the width, and Y at 0), and the stern at 5,50. This could look like: 
 
-<svg viewBox="0 0 10 50" xmlns="http://www.w3.org/2000/svg" width="100" height="500"><polygon points="5,0 10,7 10,48 5,50 0,48 0,7" /></svg>
-
+![Vessel from above](./images/from_above.svg)
 
 
 #### capabilities
