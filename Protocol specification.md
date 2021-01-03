@@ -147,6 +147,30 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
 
 
 #### vessel
+The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it could be known and published at the start of the sailing. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
+
+__mmsi__ the object MUST have an _mmsi_ property with the Martime Mobile Service Identifier[MMSI] string of the vessel.
+
+__loa__ the object MUST have a _loa_ property with the overall length of the vessel, in meters, rounded to one decimal.
+
+__from_above__ the object MUST have a _from_above_ property with as content a string with the points of an SVG <polygon> element[SVG], such that the outline of the polygon corresponds with the outline of the vessel as seen from above. The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the bow of the vessel SHOULD be aligned to the 0 value on the SVG y-ax. 
+
+_Informally_, the ship should be pointing up/North. For example, a ship with a length of 50m and a width of 10m could report:
+```
+{
+  "vessel": {
+    ...,
+    "from_above": "5,0 10,7 10,48 5,50 0,48 0,7",
+    ...,
+  }
+}
+```
+Here, the bow is at 5,0 (X at half the width, and Y at 0), and the stern at 5,50. This could look like: 
+
+<svg viewBox="0 0 10 50" xmlns="http://www.w3.org/2000/svg" width="100" height="500"><polygon points="5,0 10,7 10,48 5,50 0,48 0,7" /></svg>
+
+
+
 #### capabilities
 #### guidance
 #### nmea
@@ -159,13 +183,13 @@ The _time_ message is meant to determine the latency of the connection, by compa
 The message content MUST be an object with a property "sent" with as value the integer number of milliseconds since the Unix epoch at the moment the message was sent (created). 
 A recipient of a time message with only a "sent" property SHOULD as soon as possible send a copy of the message with an added "received" property that should be set to the integer number of milliseconds since the Unix epoch at the moment the message was received (processed).
 
-It is RECOMMENDED that a MOC regurlarly sends a time message to the vessel in orded to keep track of latency. The vessel will then react to a time message by sending a time message with both a sent as well as a received property. The difference between the "received" and "sent" values is the number of milliseconds it took for the message to travel from the MOC to the vessel message processor. The difference between the moment the MOC receives the message from the vessel, and the "received" value represents the time it took for the message to travel from the vessel to the MOC message processor.
+It is RECOMMENDED that a MOC regurlarly sends a time message to the vessel in order to keep track of latency. The vessel will then react to a time message by sending a time message with both a sent as well as a received property. The difference between the "received" and "sent" values is the number of milliseconds it took for the message to travel from the MOC to the vessel message processor. The difference between the moment the MOC receives the message from the vessel, and the "received" value represents the time it took for the message to travel from the vessel to the MOC message processor.
 
 A party SHOULD NOT send a _time_ message more frequently than once per 5 seconds.
 
 Vessels and MOCs SHOULD synchronize their clocks (of the systems involved) to a high precision source such as a GNSS.
 
-**NOTE**: In training and other scenarios the use of computer simulated vessels is common, and a simulation may on purpose be setup to have a completely different time, i.e. at night, or in winter, etc. In such situations the MOC may choose to synchronize to the Vessel (or simulator) time. A simulated vessel MUST include the **simulated** flag in its **vessel** (registration) message.
+**NOTE**: In training and other scenarios the use of computer simulated vessels is common, and a simulation may on purpose be setup to have a completely different time, i.e. at night, or in winter, etc. In such situations the MOC may choose to synchronize to the vessel (or simulator) time. A simulated vessel MUST include the **simulated** flag in its **vessel** (registration) message.
 
 **IMPLEMENTATION CONSIDERATION**: It is envisioned that relatively simply, but useful, implementations of the vessel side of this specification can be constructed as mobile phone applications. Implementors of such are encouraged to pay close attention to clock synchronization. Mobile phones often synchronize to a mobile network provided time which can be several hundreds of milliseconds off, as compared to GNSS time. The vessel is very lilkely to have a reliable GNSS source, and the appplication could use that time source to adjust time messages, or indeed the clock of the phone.
 
