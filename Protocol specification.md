@@ -153,22 +153,25 @@ __mmsi__ the object MUST have an _mmsi_ property with the Martime Mobile Service
 
 __loa__ the object MUST have a _loa_ property with the overall length of the vessel, in meters, rounded to one decimal.
 
-__from_above__ the object MUST have a _from_above_ property with as content a string with the points of an SVG <polygon> element[SVG], such that the outline of the polygon corresponds with the outline of the vessel as seen from above. The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the bow of the vessel SHOULD be aligned to the 0 value on the SVG y-ax. 
+__from_above__ the object MUST have a _from_above_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from above. The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the bow of the vessel SHOULD be aligned to the 0 value on the SVG y-ax. 
 
 _Informally_, the ship should be pointing up/North. For example, a ship with a length of 50m and a width of 10m could report:
 ```
 {
   "vessel": {
     ...,
-    "from_above": "5,0 10,7 10,48 5,50 0,48 0,7",
+    "from_above": "M 5 0 L 10 7 L 10 48 L 5 50 L 0 48 L 0 7 Z",
     ...,
   }
 }
 ```
 Here, the bow is at 5,0 (X at half the width, and Y at 0), and the stern at 5,50. This could look like: 
 
-![Vessel from above](./images/from_above.svg)
+![Vessel from above](./images/from_above_path.svg)
 
+A more accurate outline can be provided by using the commands to draw Bézier curves. For the same vessel the ```"from_above"``` could be given as ```"M 5 0 Q 10 3 10 7 L 10 48 Q 10 50 5 50 Q 0 50 0 48 L 0 7 Q 0 3 5 0"```, which renders as e.g.:
+
+![Vessel from above with curves](./images/from_above_path_with_curves.svg)
 
 #### capabilities
 #### guidance
@@ -249,3 +252,6 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
 
 [MRI]
    Maritime Identity Registry of the [Maritime Connectivity Platform](https://maritimeconnectivity.net/)
+  
+[SVG]
+  [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/)
