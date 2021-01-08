@@ -1,12 +1,28 @@
 # Vessel Remote Guidance Protocol Specification *Draft* 0.1.0
 
-## Contributors
+* Robert J. Aarts, January 2021
 
-* Robert J. Aarts, AboaMare Ltd & Novia University of Applied Sciences, robert.aarts@novia.fi
 
-Want to contribute? Read [CONTRIBUTING](./CONTRIBUTING.md)!
+## Abstract
 
-## Introduction
+This document specifies a protocol by which a vessel can aks for guidance from a remote (shore-based) party in an interoperable manner. The remote party can ask such a vessel to share (near) real-time information. The protocol is stacked upon widely supported internet and web-based technologies and specifications to ensure a low barrier for implementations.
+
+## Status of This Memo
+
+This document is an intial draft, intended for discussion and trial implementations. Input is currently provided in meetings of a work group in the [Sea 4 Value - Fairway](https://www.dimecc.com/dimecc-services/s4v/) project, but also by other experts and organizations. 
+
+Want to **contribute**? Read [CONTRIBUTING](./CONTRIBUTING.md)!
+
+## Copyright Notice
+
+Once this memo is submitted to an actual standards body the copyright might change. Until then this work is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
+
+## Table of Contents
+
+....
+
+
+## 1. Introduction
 
 There are various scenarios where a distant party, typically but not necessarily ashore, has an interest to obtain accurate, and detailed, information about a ship reliably and in real-time with the purpose of advising the ship in navigation. Examples include, but are not limited to, remote piloting of crewed ships, remote control of autonomous ships, disaster avoidance, etc. Commonly used procedures and technology are limited in detail (VHF verbal comms, AIS), reliability, and timeliness(AIS). However, the digitalization of bridge equipment had resulted in the availability of a wide variety of rich information, but _at the ship_. 
 Propietary solutions to export some of that information to shore-based stations exist, but due to their propietary nature these are not suitable for maritime operators other then the owner (shipping company) or certain suppliers of the shipping company (as in e.g. engine diagnostics). Likewise there have of course been propietary, or ad-hoc, means to send control commands from ashore to a vessel as in e.g. remotely controlled scale models.
@@ -15,7 +31,7 @@ This specification then defines protocols, and protocol parameters, to securely 
 
 Whereas this document should be treated as the normative reference for the protocols described, the accompanying reference implementations should be seen as non-normative, informal, "best-effort" interpretations of this specification. However, these implementations can be used as a basis for formalized compliancy testing. It is envisioned that ship classification companies will engage in such compliancy tests and then maritime operators should use only certified implementations in actual operations.
 
-### Related work and standards
+### 1.1. Related work and standards
 The protocols specified here build upon exisiting standards, the aim is to enable implementations built using well-tested, freely available components as much as possible.
 Standards of particular relevance include: 
 * *NMEA*, for the message format of bridge information
@@ -23,7 +39,7 @@ Standards of particular relevance include:
 * general internet standards including, but not limited to, *HTTP*, *WebRTC* and *WebSockets*, and *AV1*
 * the Maritime Identity Registry[MRI] of the [*Maritime Connectivity Platform*](https://maritimeconnectivity.net/)
 
-## System architecture
+### 1.2. System architecture
 
 This **informative** section outlines how the protocol specifications are intended to be used by the various parties. This short overview also serves to delineate the scope.
 
@@ -49,7 +65,7 @@ The architecture then relies on recently developed, but well-established, protoc
 
 The HTTP, Web Socket and WebRTC standards already specificy most of the important lower-level connectivity aspects including, but not limited to, negotiation of the best bit-rate (and e.g. video resolution), upgrading/downgrading live connections, end-to-end message integrity and other basic security, etc. Nevertheless the Vessel and MOC need to be in agreement on how to use these technologies _exactly_ to ensure flawless interoperability. That agreement is the scope of this specification.
 
-## Scope
+### 1.3. Scope
 
 The scope of this specification is to precisely define the _use_ of a suite of existing (web) API and protocol specifications to ensure interoperability between a Vessel and a MOC where the Vessel wishes to provide the MOC with real-time rich data so that an MOC can provide navigational advice to a Vessel. 
 
@@ -61,15 +77,17 @@ The protocols that will be used include HTTP, Web Socket and WebRTC, and of cour
 - the structure and content of the signalling and navigational messages.
 
 
-## Definitions
+### 1.4. Definitions
+- The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described in [RFC2119].
 - *Vessel* the party that provides one or more streams of real-time data to a MOC.
-- *MOC*, the Maritime Operation Center, requests *data from* vessels and provides *advice to* vessels.
+- *MOC*, the Maritime Operation Center, requests *data from* vessels and provides *guidance to* vessels.
 - *MMSI*, a Marine Mobile Service Identifier as specified in [M.585-8].
 
 
-## 1. Signalling protocol
+## 2. Signalling protocol
 
-### Registration
+### 2.1. Registration
 Vessels register with a MOC in two steps: first the vessel opens a WebSocket to the MOC, and then it sends a message with its status and capabilities.
 
 Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
@@ -80,19 +98,22 @@ The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web s
 
 The Web Socket implementation used by the vessel MUST verify the TLS certificate presented by the MOC, and refuse to connect if the certificate is not valid. It is RECOMMENDED that vessel software is configured to accept only certificates issued by Certificate Authorities that are explicitly configued as such, and for which the root (or intermediate) certificates have been obtained in a secure manner (out-of-band).
 
-As soon as the web socket is open the vessel MUST send a message (see below) with:
+As soon as the web socket is open the vessel MUST send a _message_ (see below)[Messages] with:
 - *vessel* information
 - *navigation status* report
 - *capabilities* for real-time connections, and possibly ship control
 - requested *guidance*
 
 The vessel then MUST send a navigation status message at least every 5 seconds, but not more frequently then every 2 seconds.
-Message with capabilities and request for advice, and both an up-to-date AIS status report (AIS message type 1 or 3) as well as an AIS static data message (AIS message type 5)
-Vessel sends regular updates with position, cog, sog, heading? and status, ais message or nmea messages
 MOC request to open WebRTC connections, ice, offers (conning, radar, etc.)
-Hang-up
 
-## 2. Messages
+### 2.2. Request for Data
+
+### 2.3. WebRTC Signalling
+
+### 2.4. Hang-up
+
+## 3. Messages
 All messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. The "request" and "control" messages are slightly different in that for those messages the sender (a MOC) expects the recipient (a vessel) to _react_, albeit not necessarily with a "response" message.
 
 Messages are defined and sent in [JSON] format. One or more messages can be sent in a single JSON object. If a JSON object contains more than one message, the order in which those messages are processed cannot be guaranteed.
@@ -146,7 +167,7 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
   ```
 
 
-#### vessel
+### 3.1. vessel
 The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it could be known and published at the start of the sailing. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
 
 __mmsi__ the object MUST have an _mmsi_ property with the Martime Mobile Service Identifier[MMSI] string of the vessel.
@@ -203,13 +224,19 @@ In this example the SVG drawing commands start at the keel at 5,20 (5 meters fro
 
 ![Vessel from abaft](./images/from_abaft_path.svg)
 
-#### capabilities
-#### guidance
-#### nmea
-#### sk
-#### predictor?
-#### route
-#### time
+### 3.2. capabilities
+
+### 3.3. request
+
+### 3.4. nmea
+### 3.5. sk
+#### predictor
+
+### 3.6. guidance
+
+### 3.7. route
+
+### 3.8. time
 The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
 
 The message content MUST be an object with a property "sent" with as value the integer number of milliseconds since the Unix epoch at the moment the message was sent (created). 
@@ -237,9 +264,6 @@ Here is an example of an exchange of time messages:
 
 Of course the vessel may also initiate this sequence.
 
-#### request
-
-
 ## 4. Real-time connections
 
 ### 4.1. conning
@@ -250,25 +274,19 @@ In addition perhaps a few additional or "new" messages for e.g.:
 
 ### 4.3.radar
 
-### 4.4 video
+### 4.4. video
 
-### 4.5 audio?
+### 4.5. audio?
 
-
-## 3. Navigation messages
-
-### 3.1 conning (from Vessel to MOC)
-
-### 3.2 advice (from MOC to Vessel)
+## 5. Security Considerations
 
 
-## 4. Security considerations
-
-
-## 5. Implementation considerations
+## 6. Implementation Considerations
 
 
 ## 6. References
+
+## 6.1. Normative References
 
 [RFC2119]
   [Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119.txt), S. Bradner. The Internet Society, March 1997.
@@ -285,3 +303,15 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
   
 [SVG]
   [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/)
+
+## 6.2. Informative References
+
+## Acknowledgements
+
+## Contributors
+
+## Author's Address
+
+    Robert J. Aarts
+    AboaMare Ltd & Novia University of Applied Sciences
+    robert.aarts@novia.fi
