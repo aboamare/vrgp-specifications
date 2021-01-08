@@ -185,7 +185,7 @@ A more accurate outline can be provided by using the commands to draw Bézier cu
 
 ![Vessel from above with curves](./images/from_above_path_with_curves.svg)
 
-__from_above__ the object SHOULD have a _from_abaft_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from abaft (behind). The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the highest point of the vessel SHOULD be aligned to the 0 value on the SVG y-ax.
+__from_abaft__ the object SHOULD have a _from_abaft_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from abaft (behind). The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the highest point of the vessel SHOULD be aligned to the 0 value on the SVG y-ax.
 
 For example, a ship with a length of height of 20m and a width of 10m could report:
 ```
