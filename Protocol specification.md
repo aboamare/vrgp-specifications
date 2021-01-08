@@ -157,7 +157,7 @@ __name__ the object SHOULD have a _name_ property with the name of the vessel as
 
 __loa__ the object MUST have a _loa_ property with the overall length of the vessel, in meters, rounded to one decimal.
 
-__width__ the object MUST have a _width_ property with the overall width of the vessel (the _SOLAS breadth_), in meters, rounded to one decimal.
+__breadth__ the object MUST have a _breadth_ property with the maximum overall width of the vessel, in meters, rounded to one decimal.
 
 __height__ the object MUST have a _height_ property with the overall height of the vessel, in meters, rounded to one decimal. The height is measured from the keel to the top of the vessel, including masts, antennas and other appendages.
 
@@ -171,7 +171,7 @@ _Informally_, the ship should be pointing up/North. For example, a ship with a l
   "vessel": {
     ...,
     "loa": 50.0,
-    "width" 10.0,
+    "breadth" 10.0,
     "from_above": "M 5 0 L 10 7 L 10 48 L 5 50 L 0 48 L 0 7 Z",
     ...,
   }
@@ -193,7 +193,7 @@ For example, a ship with a length of height of 20m and a width of 10m could repo
   "vessel": {
     ...,
     "height": 20.0,
-    "width": 10.0,
+    "breadth": 10.0,
     "from_abaft": "M 5 20 Q 0 20 0 19 L 0 11 L 2 11 L 2 5 L 0 5 L 0 3 L 4.5 3 L 4.5 0 L 5.5 0 L 4.5 3 L 10 3 L 10 5 L 8 5 L 8 11 L 10 11 L 10 19 Q 10 20 5 20",
     ...,
   }
