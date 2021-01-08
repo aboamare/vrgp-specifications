@@ -151,15 +151,27 @@ The _vessel_ message is used to convey information about the vessel that request
 
 __mmsi__ the object MUST have an _mmsi_ property with the Martime Mobile Service Identifier[MMSI] string of the vessel.
 
+__call__ the object SHOULD have a _call_ property which value SHOULD be the international radio call sign assigned to the vessel.
+
+__name__ the object SHOULD have a _name_ property with the name of the vessel as visible on the vessel.
+
 __loa__ the object MUST have a _loa_ property with the overall length of the vessel, in meters, rounded to one decimal.
 
-__from_above__ the object MUST have a _from_above_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from above. The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the bow of the vessel SHOULD be aligned to the 0 value on the SVG y-ax. 
+__width__ the object MUST have a _width_ property with the overall width of the vessel (the _SOLAS breadth_), in meters, rounded to one decimal.
+
+__height__ the object MUST have a _height_ property with the overall height of the vessel, in meters, rounded to one decimal. The height is measured from the keel to the top of the vessel, including masts, antennas and other appendages.
+
+__draft__ the object MUST have a _draft_ property with either a single number representing the average draft or an object with both a _forward_ as well as an _aft_ property with the current drafts at those positions. The draft reported here in the _vessel_ message SHOULD represent the draft for the current voyage and cargo. If the voyage covers various types of water, the reported draft should be the summer temperate sea water draft. Drafts shall be given in meters, rounded to one decimal.
+
+__from_above__ the object SHOULD have a _from_above_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from above. The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the bow of the vessel SHOULD be aligned to the 0 value on the SVG y-ax. 
 
 _Informally_, the ship should be pointing up/North. For example, a ship with a length of 50m and a width of 10m could report:
 ```
 {
   "vessel": {
     ...,
+    "loa": 50.0,
+    "width" 10.0,
     "from_above": "M 5 0 L 10 7 L 10 48 L 5 50 L 0 48 L 0 7 Z",
     ...,
   }
@@ -172,6 +184,24 @@ Here, the bow is at 5,0 (X at half the width, and Y at 0), and the stern at 5,50
 A more accurate outline can be provided by using the commands to draw Bézier curves. For the same vessel the ```"from_above"``` could be given as ```"M 5 0 Q 10 3 10 7 L 10 48 Q 10 50 5 50 Q 0 50 0 48 L 0 7 Q 0 3 5 0"```, which renders as e.g.:
 
 ![Vessel from above with curves](./images/from_above_path_with_curves.svg)
+
+__from_above__ the object SHOULD have a _from_abaft_ property with as content a string with the drawing commands of an SVG ```<path>``` element[SVG], such that the outline of the defined path corresponds with the outline of the vessel as seen from abaft (behind). The coordinates of the points shall be in meters. The port side of the vessel SHOULD be aligned with the 0 value of the SVG x-ax, and the highest point of the vessel SHOULD be aligned to the 0 value on the SVG y-ax.
+
+For example, a ship with a length of height of 20m and a width of 10m could report:
+```
+{
+  "vessel": {
+    ...,
+    "height": 20.0,
+    "width": 10.0,
+    "from_abaft": "M 5 20 Q 0 20 0 19 L 0 11 L 2 11 L 2 5 L 0 5 L 0 3 L 4.5 3 L 4.5 0 L 5.5 0 L 4.5 3 L 10 3 L 10 5 L 8 5 L 8 11 L 10 11 L 10 19 Q 10 20 5 20",
+    ...,
+  }
+}
+```
+In this example the SVG drawing commands start at the keel at 5,20 (5 meters from port and 20 meters from the top most point) and then proceed clockwise. This could be rendered as:
+
+![Vessel from abaft](./images/from_abaft_path.svg)
 
 #### capabilities
 #### guidance
