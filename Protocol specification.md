@@ -37,7 +37,7 @@ Standards of particular relevance include:
 * *NMEA*, for the message format of bridge information
 * *Asterix* for radar signals
 * general internet standards including, but not limited to, *HTTP*, *WebRTC* and *WebSockets*, and *AV1*
-* the Maritime Identity Registry[MRI] of the [*Maritime Connectivity Platform*](https://maritimeconnectivity.net/)
+* the Maritime Identity Registry[MIR] of the [*Maritime Connectivity Platform*](https://maritimeconnectivity.net/)
 
 ### 1.2. System architecture
 
@@ -98,14 +98,50 @@ The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web s
 
 The Web Socket implementation used by the vessel MUST verify the TLS certificate presented by the MOC, and refuse to connect if the certificate is not valid. It is RECOMMENDED that vessel software is configured to accept only certificates issued by Certificate Authorities that are explicitly configued as such, and for which the root (or intermediate) certificates have been obtained in a secure manner (out-of-band).
 
-As soon as the web socket is open the vessel MUST send a _message_ (see below)[Messages] with:
+As soon as the web socket is open the vessel MUST send a _message_ (see below)[Messages] with either a request for the MOC to [_authenticate_](2.1.2. Authentication of the MOC) itself to the vessel *or* with the following information:
 - *vessel* information
-- *navigation status* report
-- *capabilities* for real-time connections, and possibly ship control
+- current *conning* (navigation status) data
 - requested *guidance*
+- the description of the real-time *streams* that can be requested 
+- the possible remote vessel *controls*
 
-The vessel then MUST send a navigation status message at least every 5 seconds, but not more frequently then every 2 seconds.
-MOC request to open WebRTC connections, ice, offers (conning, radar, etc.)
+While the web socket connection is open the vessel MUST send a *conning* message at least every 5 seconds, but not more frequently then every 2 seconds.
+
+#### 2.1.1. Authentication of the Vessel
+
+The *Maritime Connectivity Platform* [MCP] makes it possible, and likely, that a vessel (software) has been issued a PKI certificate that binds the vessel __mrn__[MRN] to a private-public key pair. The MOC could therefor require that the vessel uses its MCP certificate as client certificate during the TLS negotiation of the Registration step. The MOC would then have to check that the client certificate has not been revoked, but otherwise can be somewhat assured of the identity of the vessel. 
+
+The MCP also defines the use of [OICD] tokens that could be used to authenticate persons with a registered mrn. Such tokens could be used in case e.g. an Officer Of the Watch (OOW) authenticates to the MOC (on behalf of the vessel).
+
+A MOC SHOULD authenticate the vessel, and a it is RECOMMENDED that a MOC supports MCP certificates as TLS client certificates. 
+
+A MOC that does support MCP certificates SHOULD request a ClientCertificate during the TLS handshake[TLS12] or [TLS13]. Such a MOC SHOULD verify the revocation status of a presented client (vessel) certificate with the Maritime Identity Register that issued the certificate. The MOC also SHOULD verify the status of the certificate of the MIR that issued the certificate.
+
+If the vessel (software) did not present a client certificate the MOC MAY request the vessel to authenticate with an MCP OICD token, by sending an _authenticate_ message to the vessel.
+
+#### 2.1.2. Authentication of the MOC
+
+A Maritime Identity Registry (MIR) of the MCP will also assign an __mrn__[MRN] to the MOC and issue a PKI certificate for it. However, the MCP certificates will not be chained to a root certificate that is recognized by default by most TLS stacks. A vessel that wishes for the MOC to proof its identity MAY send an _authenticate_ message, this message will contain a nonce (see 3.7.1.). A MOC that receives an _authenticate_ message MUST as soon as possible send an _authentication_ message (see 3.7.2.).
+
+Here is an example exchange where a vessel requires the MOC to authenticate, to proof it has an MIR-issued cert and the private key bound to it.
+
+  1. The vessel sends an _authenticate_ message, indicating it will only except PKI based authentication with a MIR-issued cert. It includes a nonce that the MOC is expected to sign.
+  ```
+  {
+    "authenticate": {
+      "type": ["mrn-cert"],
+      "nonce": "OaONCjyuphFXfBe72sC22Rz/HGnwCD/sA7vyA63GpXM="
+    }
+  }
+  ```
+
+  2. The MOC now signs the nonce with the private key associated with its MIR-issued cert and sends the nonce, signature, and the certificate, as a PEM encoded PKCS7 SignedData object in an _authentication_ message:
+  ```
+  {
+    "authentication": "PKCS7 signature over the nonce in PEM format" 
+  }
+  ```
+  The vessel can now unpack the authentication message value and verify the signature and certificate of the MOC.  
 
 ### 2.2. Request for Data
 
@@ -136,10 +172,10 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
 
   Where _message name_ is one of the messages defined in the subsequent sections and _message_content_ is a JSON number, string, arrray, or object, as defined for each message. 
   
-  Here an example with three messages, "capabilities", "guidance", and "nmea":
+  Here an example with three messages, "streams", "guidance", and "nmea":
   ```
   {
-    "capabilities": {
+    "streams": {
       "conning": {
         "formats": [
           "nmea"
@@ -224,19 +260,25 @@ In this example the SVG drawing commands start at the keel at 5,20 (5 meters fro
 
 ![Vessel from abaft](./images/from_abaft_path.svg)
 
-### 3.2. capabilities
+### 3.2. streams
+
+### 3.3. controls
 
 ### 3.3. request
 
-### 3.4. nmea
-### 3.5. sk
+### 3.4. conning
+#### 3.4.1 nmea
+#### 3.4.2 sk
 #### predictor
 
-### 3.6. guidance
+### 3.5. guidance
+#### 3.5.1. operator
+#### 3.5.2. info
+#### 3.5.3. advice
+#### 3.5.4. command
+#### 3.5.5. route
 
-### 3.7. route
-
-### 3.8. time
+### 3.6. time
 The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
 
 The message content MUST be an object with a property "sent" with as value the integer number of milliseconds since the Unix epoch at the moment the message was sent (created). 
@@ -263,6 +305,56 @@ Here is an example of an exchange of time messages:
   If, but only if, the clocks of the MOC and vessel are synchronized at millisecond precision can the the latencies in both directions be determined from the differences between _received_ and _sent_, and between the reception time and _received_. 
 
 Of course the vessel may also initiate this sequence.
+
+### 3.7. authentication messages
+#### 3.7.1. authenticate
+The _authenticate_ message MAY be sent by the party that wishes to authenticate the other party. Typically it is the vessel that wants to authenticate the MOC. The message is an object that MUST have a _type_ property the value of which is an array of strings with authentication methods that can be used by the recipient of the message. Supported methods specified here are "mrn-cert" and "mrn-token", which stand for authentication based on a certificate as issued by a [MIR] resp. authentication with a OICD token issued by a [MIR]. 
+
+If the list of supported authentication types includes "mrn-cert" the message MUST have a _nonce_ property with as value the base64 encoding of a random 256 bit value.
+
+Example:
+  ```
+  {
+    "authenticate": {
+      "type": ["mrn-cert"],
+      "nonce": "OaONCjyuphFXfBe72sC22Rz/HGnwCD/sA7vyA63GpXM="
+    }
+  }
+  ```
+
+The recipient of this message MUST send an _authentication_ message that refers to the nonce.
+
+#### 3.7.2. authentication
+A recipient of an _authenticate_ message MUST send an _authentication_ message, as soon as possible. The actual value of the _authentication_ message is dependent on the _type_ of authentication. This type must be one of those listed in the authentication message.
+
+  * __mrn-cert__: for authentication based upon the MRN certificate the authenticating party MUST create a [PKCS7] _SignedData_ construct using the nonce as the data to sign. The PEM encoding of the SignedData should be used as the content of the _authentication_ message. The authenticating party SHOULD use the SHA-256 hash algorithm to create the disgest and the RSA algorithm for encryption.
+
+  E.g.:
+  ```
+    {
+      "authentication": "PKCS7 signature over the nonce in PEM format" 
+    }
+  ```
+  The recipient of the _authentication_ message can now unpack the message value, i.e. the PKCS7 payload, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
+
+  * __mrn-token__: if authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OICD]) _access token_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OICD] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OICD] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
+
+  E.g.:
+  ```
+    {
+      "authentication": {
+        "url": "https://mri.aboamare.com/id_token",
+        "code": "SplxlOBeZQQYbYS6WxSbIA"
+      }
+    }
+  ```
+
+  The recipient of such _authentication_ message can now act as OICD client and request the Identity Token from the MIR of the authenticated party. The MIR should authenticate the client, this can be done using a MCP certificate as part of the TLS handshake. 
+
+  NOTE: ID tokens are probably not yet working in the MCP MIR, but could be supported.
+
+##### 3.7.2.1. Authentication Errors
+In case the authenticating party cannot, or does not wish to, honour the requested authentication it MUST send an _authentication_ message with an _error_ object. The _error_ object MUST have a _code_ property which SHOULD be one of the codes listed below. In addition the _error_ object MAY have a _msg_ property with a short string that may provide further information.  
 
 ## 4. Real-time connections
 
@@ -296,15 +388,33 @@ In addition perhaps a few additional or "new" messages for e.g.:
 
 [M.585-8]
   [Recommendation ITU-R M.585-8, Assignment and use of identities in the
-maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.585-8-201910-I!!PDF-E.pdf)
+maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.585-8-201910-I!!PDF-E.pdf).
 
-[MRI]
-   Maritime Identity Registry of the [Maritime Connectivity Platform](https://maritimeconnectivity.net/)
-  
+[MRN]
+  The IANA assignment of the ["mrn" URI and namespace](https://www.iana.org/assignments/urn-formal/mrn).
+
+[OICD]
+  [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html)
+
+[PEM]
+  [Textual Encodings of PKIX, PKCS, and CMS Structures](https://tools.ietf.org/html/rfc7468).
+
+[PKCS7]
+  [PKCS #7: Cryptographic Message Syntax](https://tools.ietf.org/html/rfc2315).
+
 [SVG]
-  [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/)
+  [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/).
 
 ## 6.2. Informative References
+
+[JWT]
+  [JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519).
+
+[MCP]
+  [Maritime Connectivity Platform](https://maritimeconnectivity.net/)
+
+[MIR]
+  Maritime Identity Registry of the [Maritime Connectivity Platform](https://maritimeconnectivity.net/).
 
 ## Acknowledgements
 
