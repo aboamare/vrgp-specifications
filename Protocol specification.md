@@ -19,8 +19,13 @@ Once this memo is submitted to an actual standards body the copyright might chan
 
 ## Table of Contents
 
-....
-
+  1. [Introduction](#1-introduction)
+    
+      1.1. [Related work and standards](#11-related-work-and-standards)
+  
+  ...
+  
+  ...
 
 ## 1. Introduction
 
@@ -36,7 +41,7 @@ The protocols specified here build upon exisiting standards, the aim is to enabl
 Standards of particular relevance include: 
 * *NMEA*, for the message format of bridge information
 * *Asterix* for radar signals
-* general internet standards including, but not limited to, *HTTP*, *WebRTC* and *WebSockets*, and *AV1*
+* general internet standards including, but not limited to, *HTTP*, *[WebRTC]* and *[WebSocket]*, and *[AV1]*
 * the Maritime Identity Registry[MIR] of the [*Maritime Connectivity Platform*](https://maritimeconnectivity.net/)
 
 ### 1.2. System architecture
@@ -85,18 +90,19 @@ The protocols that will be used include HTTP, Web Socket and WebRTC, and of cour
 - *MMSI*, a Marine Mobile Service Identifier as specified in [M.585-8].
 
 
-## 2. Signalling protocol
+## 2. Protocol
+Many of the messages specified in this memo merely convey information but some messages presume specific actions from the recipient. This section describes those actions, whereas the details of the structure and content of messages are given in the next section, [Messages](#3-messages). But before any message can be sent a communications channel must be established, this is called _Registration_.
 
 ### 2.1. Registration
-Vessels register with a MOC in two steps: first the vessel opens a WebSocket to the MOC, and then it sends a message with its status and capabilities.
+Vessels register with a MOC in two steps: first the vessel opens a [WebSocket] to the MOC, and then it sends a message with its status and capabilities.
 
 Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
 
 wss://amoc.aboamare.com/[mmsi] so a vessel with 
 
-The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web socket protocol, and the protocol part of the url MUST be "wss" [RFC8307]. The MOC SHOULD offer the registration endpoint on port 443.
+The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web socket protocol [WebSocket], and the protocol part of the url MUST be "wss" [RFC8307]. The MOC SHOULD offer the registration endpoint on port 443.
 
-The Web Socket implementation used by the vessel MUST verify the TLS certificate presented by the MOC, and refuse to connect if the certificate is not valid. It is RECOMMENDED that vessel software is configured to accept only certificates issued by Certificate Authorities that are explicitly configued as such, and for which the root (or intermediate) certificates have been obtained in a secure manner (out-of-band).
+The WebSocket implementation used by the vessel MUST verify the TLS certificate presented by the MOC, and refuse to connect if the certificate is not valid. It is RECOMMENDED that vessel software is configured to accept only certificates issued by Certificate Authorities that are explicitly configued as such, and for which the root (or intermediate) certificates have been obtained in a secure manner (out-of-band).
 
 As soon as the web socket is open the vessel MUST send a _message_ (see below)[Messages] with either a request for the MOC to [_authenticate_](2.1.2. Authentication of the MOC) itself to the vessel *or* with the following information:
 - *vessel* information
@@ -117,11 +123,11 @@ A MOC SHOULD authenticate the vessel, and a it is RECOMMENDED that a MOC support
 
 A MOC that does support MCP certificates SHOULD request a ClientCertificate during the TLS handshake[TLS12] or [TLS13]. Such a MOC SHOULD verify the revocation status of a presented client (vessel) certificate with the Maritime Identity Register that issued the certificate. The MOC also SHOULD verify the status of the certificate of the MIR that issued the certificate.
 
-If the vessel (software) did not present a client certificate the MOC MAY request the vessel to authenticate with an MCP OICD token, by sending an _authenticate_ message to the vessel.
+If the vessel (software) did not present a client certificate the MOC MAY request the vessel to authenticate with an MCP OICD token, by sending an *[authenticate](#371-authenticate)* message to the vessel.
 
 #### 2.1.2. Authentication of the MOC
 
-A Maritime Identity Registry (MIR) of the MCP will also assign an __mrn__[MRN] to the MOC and issue a PKI certificate for it. However, the MCP certificates will not be chained to a root certificate that is recognized by default by most TLS stacks. A vessel that wishes for the MOC to proof its identity MAY send an _authenticate_ message, this message will contain a nonce (see 3.7.1.). A MOC that receives an _authenticate_ message MUST as soon as possible send an _authentication_ message (see 3.7.2.).
+A Maritime Identity Registry (MIR) of the MCP will also assign an __mrn__[MRN] to the MOC and issue a PKI certificate for it. However, the MCP certificates will not be chained to a root certificate that is recognized by default by most TLS stacks. A vessel that wishes for the MOC to proof its identity MAY send an *[authenticate](#371-authenticate)* message, this message will contain a nonce. A MOC that receives an _authenticate_ message MUST as soon as possible send an *[authentication](#372-authentication)* message.
 
 Here is an example exchange where a vessel requires the MOC to authenticate, to proof it has an MIR-issued cert and the private key bound to it.
 
@@ -146,11 +152,21 @@ Here is an example exchange where a vessel requires the MOC to authenticate, to 
 ### 2.2. Request for Data
 
 ### 2.3. WebRTC Signalling
+To setup and maintain WebRTC connections the vessel and MOC need to send _signalling_ messages to convey _ICE candidates_ and _Session Descriptions_. In addition a MOC may want to inform a vessel about STUN and/or TURN servers that the vessel may use.
+
+To inform a WebRTC peer about an _ICECandidate_ the local WebRTC implementation SHOULD send an *[ice](#391-ice)* message over the websocket.
+To inform a WebRTC peer about a _SessionDescription_ the local WebRTC implementation SHOULD send an *[sdp](#392-sdp)* message over the websocket.
+
+A MOC that wishes to inform a vessel about STUN and/or TURN servers SHOULD add a *ice_servers* property to a *[request](#33-request)* (for real time data) message.
 
 ### 2.4. Hang-up
 
+To indicate the orderly close-down of the connection either party SHOULD send a *[bye](#38-bye)* message. The recipient of a *[bye](#38-bye)* message SHOULD close any WebRTC connections established with the sender, and close the WebSocket.
+
+**IMPLEMENTATION CONSIDERATION**: of course the connection between a vessel and MOC can be interrupted, broken altogether, etc. Implementations should make sure to act upon such situation and to free resources. The _bye_ message serves to keep a record of an _intentional_ closure of the connection.
+
 ## 3. Messages
-All messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. The "request" and "control" messages are slightly different in that for those messages the sender (a MOC) expects the recipient (a vessel) to _react_, albeit not necessarily with a "response" message.
+*Most* messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. However, the previous section, "[Protocol](#2-protocol)", refers to those messages that presume some action by the recipient. Examples of such messages include "[authenticate](#371-authenticate)", "[request](#33-request)", and "[bye](#38-bye)".
 
 Messages are defined and sent in [JSON] format. One or more messages can be sent in a single JSON object. If a JSON object contains more than one message, the order in which those messages are processed cannot be guaranteed.
 
@@ -201,7 +217,6 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
     "nmea": "!AIVDO,1,1,,B,25Cjtd0Oj;Jp7ilG7=UkKBoB0<06,0*62"
   }
   ```
-
 
 ### 3.1. vessel
 The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it could be known and published at the start of the sailing. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
@@ -259,6 +274,8 @@ For example, a ship with a length of height of 20m and a width of 10m could repo
 In this example the SVG drawing commands start at the keel at 5,20 (5 meters from port and 20 meters from the top most point) and then proceed clockwise. This could be rendered as:
 
 ![Vessel from abaft](./images/from_abaft_path.svg)
+
+__simulation__ the object MAY have a _similation_ property that when present SHOULD have a value of "true". This property MUST be included, and the value MUST be "true" whenever the vessel is a (computer) simulation, is not observed in the real world, may operate in a different time frame, etc.
 
 ### 3.2. streams
 
@@ -356,6 +373,12 @@ A recipient of an _authenticate_ message MUST send an _authentication_ message, 
 ##### 3.7.2.1. Authentication Errors
 In case the authenticating party cannot, or does not wish to, honour the requested authentication it MUST send an _authentication_ message with an _error_ object. The _error_ object MUST have a _code_ property which SHOULD be one of the codes listed below. In addition the _error_ object MAY have a _msg_ property with a short string that may provide further information.  
 
+### 3.8. bye
+
+### 3.9. WebRTC Messages
+#### 3.9.1 ice
+#### 3.9.2 sdp
+
 ## 4. Real-time connections
 
 ### 4.1. conning
@@ -380,11 +403,11 @@ In addition perhaps a few additional or "new" messages for e.g.:
 
 ## 6.1. Normative References
 
+[AV1]
+  [AV1 Bitstream & Decoding Process Specification](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)
+
 [RFC2119]
   [Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119.txt), S. Bradner. The Internet Society, March 1997.
-
-[RFC8307]
-  [Well-Known URIs for the WebSocket Protocol](https://tools.ietf.org/html/rfc8307), C. Bormann, Universitaet Bremen TZI, January 2018.
 
 [M.585-8]
   [Recommendation ITU-R M.585-8, Assignment and use of identities in the
@@ -404,6 +427,15 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
 
 [SVG]
   [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/).
+
+[WebRTC]
+  [WebRTC 1.0: Real-Time Communication Between Browsers](https://www.w3.org/TR/webrtc/)
+
+[WebSocket]
+  [The WebSocket Protocol](https://tools.ietf.org/html/rfc6455)
+
+[RFC8307]
+  [Well-Known URIs for the WebSocket Protocol](https://tools.ietf.org/html/rfc8307), C. Bormann, Universitaet Bremen TZI, January 2018.
 
 ## 6.2. Informative References
 
