@@ -81,6 +81,7 @@ The protocols that will be used include HTTP, Web Socket and WebRTC, and of cour
 - the various sources will require different types of WebRTC connections, these types and their parameters need to be specified; including e.g. video codecs that should be used.
 - the structure and content of the signalling and navigational messages.
 
+Note that this specification does _not_ prescribe _how to use_ the real-time data and navigational advice messages. For example, in remote pilotage (futher) regulations may state that the vessel must be able to provide a certain class of radar data, that it is mandatory for the vessel to verify the identity and qualifiactions of the remote pilot (the operator in terms of this specification), that a route should be exchanged before any other guidance should be given or accepted, and that pilot information, routes, and all guidance be logged in the vessel data recorder.
 
 ### 1.4. Definitions
 - The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
