@@ -354,7 +354,7 @@ A recipient of an _authenticate_ message MUST send an _authentication_ message, 
   ```
   The recipient of the _authentication_ message can now unpack the message value, i.e. the PKCS7 payload, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
 
-  * __mrn-token__: if authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OICD]) _access token_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OICD] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OICD] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
+  * __mrn-token__: if authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OICD]) _Authorization Code_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OICD] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OICD] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
 
   E.g.:
   ```
@@ -368,7 +368,7 @@ A recipient of an _authenticate_ message MUST send an _authentication_ message, 
 
   The recipient of such _authentication_ message can now act as OICD client and request the Identity Token from the MIR of the authenticated party. The MIR should authenticate the client, this can be done using a MCP certificate as part of the TLS handshake. 
 
-  NOTE: ID tokens are probably not yet working in the MCP MIR, but could be supported.
+  NOTE: ID tokens are probably might not yet be working this way in the MCP MIR, but could be supported.
 
 ##### 3.7.2.1. Authentication Errors
 In case the authenticating party cannot, or does not wish to, honour the requested authentication it MUST send an _authentication_ message with an _error_ object. The _error_ object MUST have a _code_ property which SHOULD be one of the codes listed below. In addition the _error_ object MAY have a _msg_ property with a short string that may provide further information.  
