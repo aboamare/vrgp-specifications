@@ -451,6 +451,8 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
 
 ## Acknowledgements
 
+Matti Aaltonen, Traficom, provided valueable comments about the scope of this specification.
+
 ## Contributors
 
 ## Author's Address
