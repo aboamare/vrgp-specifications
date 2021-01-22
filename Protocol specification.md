@@ -72,14 +72,22 @@ The HTTP, Web Socket and WebRTC standards already specificy most of the importan
 
 ### 1.3. Scope
 
-The scope of this specification is to precisely define the _use_ of a suite of existing (web) API and protocol specifications to ensure interoperability between a Vessel and a MOC where the Vessel wishes to provide the MOC with real-time rich data so that an MOC can provide navigational advice to a Vessel. 
+The scope of this specification is to precisely define the _use_ of a suite of existing (web) API and protocol specifications to ensure interoperability between a Vessel and a MOC where the Vessel wishes to provide the MOC with real-time rich data so that an MOC can provide navigational advice to a Vessel. In other words the vessel has a particular need to contact the MOC, which is somewhat different from e.g. situations where a vessel would broadcast navigational information and/or intent for any party that is interested (as e.g. current AIS broadcasts over VHF).
 
-The protocols that will be used include HTTP, Web Socket and WebRTC, and of course to some degree the protocols that these depend on. Some _examples_ of what this specifiation needs to address include: 
+Note that it is also possible for an autonomous or low-manned vessel to be tracked and controlled by an operating station, using a propietory protocol possible over a dedicated private network or connection; such that the operating station could now act as a Vessel towards a MOC (e.g. a manadatory VTS) using the protocol specified in this memo.
+
+The Vessel Remote Guidance Protocol will itself of course rely on other protocols and standards, including but not limited to HTTP, Web Socket and WebRTC, and of course to some degree the protocols that these depend on.
+
+This specification deliberately avoids specification of lower level networking requirements, it is assume that a sufficiently high quality internet connection is available. What excactly is deemed sufficient depends on the actual use. Maritime authorities, classification bodies or insurers may set minimum requirements for different situations. Even within a single use case, such as for example remote pilotage, the minimum requirements for bandwidth and reliability may very based on the distance from other ships and hazards, the weather, etc.  
+However, it is important to address unexpected disconnections, re-establsihment of connections, and relative priorities of various data sources and streams.
+
+All in all, some _examples_ of what this specifiation needs to address include: 
 
 - ensure that the Vessel communicates with a trustworthy MOC.
 - establish a standard naming of data sources, to indicate e.g. the onboard position of a video camera.
 - the various sources will require different types of WebRTC connections, these types and their parameters need to be specified; including e.g. video codecs that should be used.
 - the structure and content of the signalling and navigational messages.
+- how the Vessel and the MOC should handle exceptions such as unexpected disconnections.
 
 Note that this specification does _not_ prescribe _how to use_ the real-time data and navigational advice messages. For example, in remote pilotage (futher) regulations may state that the vessel must be able to provide a certain class of radar data, that it is mandatory for the vessel to verify the identity and qualifiactions of the remote pilot (the operator in terms of this specification), that a route should be exchanged before any other guidance should be given or accepted, and that pilot information, routes, and all guidance be logged in the vessel data recorder.
 
@@ -345,15 +353,15 @@ The recipient of this message MUST send an _authentication_ message that refers 
 #### 3.7.2. authentication
 A recipient of an _authenticate_ message MUST send an _authentication_ message, as soon as possible. The actual value of the _authentication_ message is dependent on the _type_ of authentication. This type must be one of those listed in the authentication message.
 
-  * __mrn-cert__: for authentication based upon the MRN certificate the authenticating party MUST create a [PKCS7] _SignedData_ construct using the nonce as the data to sign. The PEM encoding of the SignedData should be used as the content of the _authentication_ message. The authenticating party SHOULD use the SHA-256 hash algorithm to create the disgest and the RSA algorithm for encryption.
+  * __mrn-cert__: for authentication based upon the MRN certificate the authenticating party MUST create a [CMS] _SignedData_ construct using the nonce as the data to sign, and SHOULD adhere to [RFC8933]. The PEM encoding of the SignedData should be used as the content of the _authentication_ message. The authenticating party SHOULD use the SHA-256 hash algorithm to create the disgest and the RSA algorithm for encryption.
 
   E.g.:
   ```
     {
-      "authentication": "PKCS7 signature over the nonce in PEM format" 
+      "authentication": "CMS signature over the nonce in PEM format" 
     }
   ```
-  The recipient of the _authentication_ message can now unpack the message value, i.e. the PKCS7 payload, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
+  The recipient of the _authentication_ message can now unpack the message value, i.e. the CMS payload, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
 
   * __mrn-token__: if authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OICD]) _Authorization Code_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OICD] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OICD] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
 
@@ -423,14 +431,20 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
 [PEM]
   [Textual Encodings of PKIX, PKCS, and CMS Structures](https://tools.ietf.org/html/rfc7468).
 
-[PKCS7]
-  [PKCS #7: Cryptographic Message Syntax](https://tools.ietf.org/html/rfc2315).
+[CMS]
+  [Cryptographic Message Syntax](https://tools.ietf.org/html/rfc5652).
+
+[RFC8933]
+  [Update to the Cryptographic Message Syntax (CMS) for Algorithm Identifier Protection](https://tools.ietf.org/html/rfc8933)
 
 [SVG]
   [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/).
 
 [WebRTC]
   [WebRTC 1.0: Real-Time Communication Between Browsers](https://www.w3.org/TR/webrtc/)
+
+[WebRTC Priority]
+  [WebRTC Priority Control API](https://www.w3.org/TR/webrtc-priority/)
 
 [WebSocket]
   [The WebSocket Protocol](https://tools.ietf.org/html/rfc6455)
@@ -450,8 +464,8 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
   Maritime Identity Registry of the [Maritime Connectivity Platform](https://maritimeconnectivity.net/).
 
 ## Acknowledgements
-
-Matti Aaltonen, Traficom, provided valueable comments about the scope of this specification.
+The following persons provided valuable comments during the development of this specification:
+* Matti Aaltonen, Traficom.
 
 ## Contributors
 
