@@ -107,7 +107,11 @@ Vessels register with a MOC in two steps: first the vessel opens a [WebSocket] t
 
 Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
 
-wss://amoc.aboamare.com/[mmsi] so a vessel with 
+    wss://amoc.aboamare.com/navigation/[mmsi]
+    
+so a vessel with MMSI "230172000" would contact: 
+
+    wss://amoc.aboamare.com/navigation/230172000
 
 The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web socket protocol [WebSocket], and the protocol part of the url MUST be "wss" [RFC8307]. The MOC SHOULD offer the registration endpoint on port 443.
 
