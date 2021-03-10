@@ -107,11 +107,11 @@ Vessels register with a MOC in two steps: first the vessel opens a [WebSocket] t
 
 Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
 
-    wss://amoc.aboamare.com/navigation/[mmsi]
+    wss://amoc.aboamare.net/navigation/[mmsi]
     
 so a vessel with MMSI "230172000" would contact: 
 
-    wss://amoc.aboamare.com/navigation/230172000
+    wss://amoc.aboamare.net/navigation/230172000
 
 The MOC endpoint MUST BE secure, i.e. the endpoint MUST support the secure web socket protocol [WebSocket], and the protocol part of the url MUST be "wss" [RFC8307]. The MOC SHOULD offer the registration endpoint on port 443.
 
@@ -175,7 +175,7 @@ A MOC that wishes to inform a vessel about STUN and/or TURN servers SHOULD add a
 
 ### 2.4. Hang-up
 
-To indicate the orderly close-down of the connection either party SHOULD send a *[bye](#39-bye)* message. The recipient of a *[bye](#39-bye)* message SHOULD close any WebRTC connections established with the sender, and close the WebSocket.
+To indicate the orderly close-down of the connection either party SHOULD send a *[bye](#39-bye)* message. The recipient of a *[bye](#39-bye)* message SHOULD close any WebRTC connections established with the sender, and close the WebSocket. The WebSocket MUST be closed with a 1000 CloseEvent status code, to indicate normal closure.
 
 **IMPLEMENTATION CONSIDERATION**: of course the connection between a vessel and MOC can be interrupted, broken altogether, etc. Implementations should make sure to act upon such situation and to free resources. The _bye_ message serves to keep a record of an _intentional_ closure of the connection.
 
@@ -333,7 +333,7 @@ A vessel that receives a request MUST attempt to open a WebRTC connection if nee
 #### predictor
 
 ### 3.5. Notifications
-The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#351-debug)_ and _[info](_ can be used rather freely, the use and content of _[alert](#353-alert)_, _[warning](#354-warning)_, _[alarm](#355-alarm)s_ and _[emergency](#356-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Alerts, warnings, alarms and emergencies](5-alerts-warnings-alarms-and-emergencies).
+The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#351-debug)_ and _[info](#352-info)_ can be used rather freely, the use and content of _[alert](#353-alert)_, _[warning](#354-warning)_, _[alarm](#355-alarm)s_ and _[emergency](#356-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Alerts, warnings, alarms and emergencies](5-alerts-warnings-alarms-and-emergencies).
 
 The properties of notifications are specified in the following list, subsequent sections define which properties are used in the actual messages:
 
@@ -447,7 +447,7 @@ A recipient of an _authenticate_ message MUST send an _authentication_ message, 
   ```
     {
       "authentication": {
-        "url": "https://mri.aboamare.com/id_token",
+        "url": "https://mri.aboamare.net/id_token",
         "code": "SplxlOBeZQQYbYS6WxSbIA"
       }
     }
