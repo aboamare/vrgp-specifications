@@ -1,6 +1,6 @@
 # Vessel Remote Guidance Protocol Specification *Draft* 0.1.0
 
-* Robert J. Aarts, January 2021
+* Robert J. Aarts, March 2021
 
 
 ## Abstract
@@ -120,12 +120,12 @@ The WebSocket implementation used by the vessel MUST verify the TLS certificate 
 As soon as the web socket is open the vessel MUST send a _message_ ([see below](#3-Messages)) with either a request for the MOC to [_authenticate_](#212-authentication-of-the-MOC) itself to the vessel *or* with the following information:
 - *vessel* information
 - current *conning* (navigation status) data
-- current *alerts*, *warning*, *alarms*, and *emergencies*, as specified in [section 5](#5-alerts-warnings-alarms-and-emergencies), if any
+- current *cautions*, *warning*, *alarms*, and *emergencies*, as specified in [section 5](#5-cautions-warnings-alarms-and-emergencies), if any
 - requested *guidance*
 - the description of the real-time *streams* that can be requested 
 - the possible *controls* for remote operation of the vessel, if any
 
-While the web socket connection is open the vessel MUST send a *conning* message at least every 5 seconds, but not more frequently than every 2 seconds. In addition each the vessel MUST send a *notification* for each defined alert, warning, alarm or emergency that arises, gets acknowledged or gets cancelled.
+While the web socket connection is open the vessel MUST send a *conning* message at least every 5 seconds, but not more frequently than every 2 seconds. In addition each the vessel MUST send a *notification* for each defined caution, warning, alarm or emergency that arises, gets acknowledged or gets cancelled.
 
 #### 2.1.1. Authentication of the Vessel
 
@@ -333,17 +333,15 @@ A vessel that receives a request MUST attempt to open a WebRTC connection if nee
 #### predictor
 
 ### 3.5. Notifications
-The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#351-debug)_ and _[info](#352-info)_ can be used rather freely, the use and content of _[alert](#353-alert)_, _[warning](#354-warning)_, _[alarm](#355-alarm)s_ and _[emergency](#356-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Alerts, warnings, alarms and emergencies](5-alerts-warnings-alarms-and-emergencies).
+The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#351-debug)_ and _[info](#352-info)_ can be used rather freely, the use and content of _[caution](#353-caution)_, _[warning](#354-warning)_, _[alarm](#355-alarm)s_ and _[emergency](#356-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Cautions, warnings, alarms and emergencies](5-cautions-warnings-alarms-and-emergencies).
 
 The properties of notifications are specified in the following list, subsequent sections define which properties are used in the actual messages:
 
-- __msg__: a string, with a textual representation of the information in the notitification. MUST be present in _debug_ and _info_ messages, and is RECOMMENDED for _alert_, _warning_, _alarm_, and _emergency_ messages.
+- __msg__: a string, with a textual representation of the information in the notitification. MUST be present in _debug_ and _info_ messages, and is RECOMMENDED for _caution_, _warning_, _alarm_, and _emergency_ messages.
 
-- __id__: a UUID string that uniquely identifies the situation described in a notification. SHOULD be present in _alert_, _warning_, _alarm_, and _emergency_ messages.
+- __id__: a UUID string that uniquely identifies the situation described in a notification. SHOULD be present in _caution_, _warning_, _alarm_, and _emergency_ messages.
 
-- __group__: a string, used to indicate the kind of shipboard system, or the kind of operation, that is affected by the reported situation. For example "propulsion", "steering", etc. The actual group to use is defined in [section 5](#5-alerts-warnings-alarms-and-emergencies).
-
-- __name__: a string, that is a short clear description of the situation, e.g. "low oil pressure". Some of the messages below prescribe standardized phrases. MUST be present in _alert_, _warning_, _alarm_, and _emergency_ messages.
+- __category__: a string, used to indicate the kind of shipboard system, or the kind of operation, that is affected by the reported situation. For example "propulsion", "steering", etc. The actual category to use is defined in [section 5](#5-cautions-warnings-alarms-and-emergencies).
 
 - __source__: a string, that identifies the source or place of the reported situation, e.g. "steering pump port 1". Some of the messages below prescribe standardized phrases.
 
@@ -353,7 +351,7 @@ The properties of notifications are specified in the following list, subsequent 
 
 - __cancelled__: the UTC date and time, in the ISO 8061 date-time format specified in [RFC3339], when the situation described in this notification was no longer observed, and hence no longer requires attention.
 
-For particular names and sources it can be useful to add additional information in further attributes. Rules and suggestions are given in the specific message sections.
+For particular categories and sources it can be useful to add additional information in further attributes. Rules and suggestions are given in the specific message sections.
 
 #### 3.5.1 debug
 The _debug_ message is used to convey information that aids the development of the implementation. This message SHOULD NOT be sent by implementations in actual operational use. 
@@ -363,17 +361,17 @@ The _debug_ message MUST have a _msg_ property with as value a string with the i
 The _info_ message is used to convey information that might be useful to the MOC but is not deemed important or critical.
 The _info_ message MUST have a _msg_ property with as value a string with the information.
 
-#### 3.5.3 alert
-The _alert_ message is used to convey information about a situation or possible issue that the MOC should take note of, but is not (yet) deemed to require attention. An _alert_ message MUST have a _name_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-alerts-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
+#### 3.5.3 caution
+The _caution_ message is used to convey information about a situation or possible issue that the MOC should take note of, is likely to require attention but does not (yet) warrant a warning or alarm. A _caution_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
  
 #### 3.5.4 warning
-The _warning_ message is used to convey information about a situation that __requires attention__. A _warning_ message MUST have a _name_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-alerts-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
+The _warning_ message is used to convey information about a situation that __requires attention__. A _warning_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
 #### 3.5.5 alarm
-The _alarm_ message is used to convey information about a situation that __requires *immediate* attention__. An _alarm_ message MUST have a _name_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-alerts-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
+The _alarm_ message is used to convey information about a situation that __requires *immediate* attention__. An _alarm_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
 #### 3.5.6 emergency
-The _emergency_ message is used to convey information about a situation where __life or vessel are in immediate danger__. An _emergency_ message MUST have a _name_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-alerts-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
+The _emergency_ message is used to convey information about a situation where __life or vessel are in immediate danger__. An _emergency_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
 ### 3.6. guidance
 #### 3.6.1. operator
@@ -480,20 +478,90 @@ In addition perhaps a few additional or "new" messages for e.g.:
 
 ### 4.5. audio?
 
-## 5. Alerts, warnings, alarms, and emergencies
-Generally speaking it is crucially important that a MOC is aware of abnormal situations aboard the vessel. The vessel therefore must send information about such situations in _alert_, _warning_, _alarm_ and _emergency_ messages. However, not _all_ abnormal sitations are of interest to a MOC. For example a clogged toilet in a cabin may raise an alert on the vessel, but may be of no interest to a MOC. For purposes of reliable interoperability, guidance and navigation this section mandates a list of situations that a compliant vessel SHOULD notify about.
+## 5. Cautions, warnings, alarms, and emergencies
+Generally speaking it is crucially important that a MOC is aware of abnormal situations aboard the vessel. The vessel therefore must send information about such situations in _caution_, _warning_, _alarm_ and _emergency_ messages. However, not all abnormal sitations are of interest to a MOC. For example a clogged toilet in a cabin may raise an alert on the vessel, but may be of no interest to a MOC. For purposes of reliable interoperability, guidance and navigation this section mandates a list of situations that a compliant vessel should notify about.
 
-The table below groups and names those situations. 
-- the _group_, if given, MUST be present in the notification message. 
-- the message must have the given _name_. 
-- the columns for _alert_, _warning_, _alarm_, and _emergency_ indicate if a corresponding message MUST be sent (M), SHOULD be sent (S), or is RECOMMENDED to be sent (R), or SHOULD NOT be sent (empty). 
-- the _additional properties_ column prescribes properties that are RECOMMENDED to be included, with the < required value > prescribed between angled brackets.
-- the _sources_ column indicates the, type and RECOMMENDED naming convention of, systems, locations, etc., that further identify the sitation. If the source is printed in __boldface__ the message MUST have a _source_ attribute. Otherwise it is RECOMMENDED that the message includes the _source_.
+The table below groups and names those situations and is based upon [IMO-A2021], where the "function" in the [IMO-A2021] specification is used as value for the _category_ property.
+
+  - the _category_, if given, MUST be present in the notification message, verbatim.
+  - the columns for _caution_, _warning_, _alarm_, and _emergency_ indicate if a corresponding message MUST be sent (M), SHOULD be sent (S), or is RECOMMENDED to be sent (R), or SHOULD NOT be sent (empty). 
+  - the _additional properties_ column prescribes properties that are RECOMMENDED to be included, with the < required value > prescribed between angled brackets.
+  - the _sources_ column indicates the type, and RECOMMENDED naming convention of, systems, locations, etc., that further identify the sitation. If the source is printed in __boldface__ the message MUST have a _source_ attribute. Otherwise it is RECOMMENDED that the message includes the _source_, if known.
+  - the _ref_ column indicates the paragraph number in [IMO-A2021] that describes the situation, if defined. Navigational alarms may refer to "INS", that is to Appendix 5 of [IMO-MSC252].
 
 
-| group      | name                   | alert | warning | alarm | emergency | additional properties               | sources                   |
-| ---------- | --------------         | :---: | :-----: | :---: | :----:    | -----                               | ------                    |
-| propulsion | temperature too high   |       |         |   M   |  M        | temperature < number in degrees C > | __main engine 1__         |
+| category                      | caution | warning | alarm | emergency | additional properties               | sources                   | ref    |
+| ----------                    | :---:   | :-----: | :---: | :----:    | -----                               | ------                    | ------ |
+| General emergency alarm       |         |         |       |  M        |                                     |                           | 3.2.1  |
+| Fire alarm                    |         |         |   M   |  M        |                                     |                           | 3.3.9, 3.2.2  |
+| Water ingress                 |         |         |   M   |  M        |                                     |                           | 3.3.5, 3.2.3  |
+| Machinery alarm               |         |         |   M   |           |                                     |                           | 3.3.1  |
+| Steering gear alarm           |         |         |   M   |           |                                     |                           | 3.3.2  |
+| Control system fault          |         |         |   M   |           |                                     |                           | 3.3.3  |
+| Bilge alarm                   |         |         |   M   |           |                                     |                           | 3.3.4  |
+| Watch alert                   |    M    |     M   |   M   |           |                                     |                           | 3.3.8  |
+| Fire extinguishing activated  |         |         |   M   |           |                                     |                           | 3.3.10 |
+| Cargo alarm                   |         |         |   M   |           |                                     |                           | 3.3.12 |
+| Gas detected                  |         |         |   M   |           |                                     |                           | 3.3.13 |
+| Watertight door malfunction   |         |         |   M   |           |                                     |                           | 3.3.14 |
+| Power supply failure          |         |         |   S   |           |                                     |  heading_control, autopilot, ECDIS, gyro_1, radar_1 echo_sounder  | INS |
+| Off heading                   |         |     M   |       |           | heading < deg true >, set_heading < deg true> | heading_control, autopilot | INS  |
+| Course difference             |         |     S   |       |           | heading < deg true >, track_course < deg true> | ECDIS, heading_control, autopilot | INS  |
+
+### 5.1. Examples
+
+A bridge officer has not yet acknowledged the first (only visual) reminder of the bridge navigational watch alarm system, the vessel sends:
+```
+{"warning": 
+  {
+    "category": "Watch alert",
+    "id": "e953395c-86fa-11eb-8dcd-0242ac130003"
+    "raised": "2021-03-17T10:23:45Z"
+  }
+}
+```
+When 3 seconds later a bridge officer signals his presence to the system, the situation is no longer present, so the vessel sends a new message, note that the id is the same as when the alarm was raised.
+```
+{"warning": 
+  {
+    "category": "Watch alert",
+    "id": "e953395c-86fa-11eb-8dcd-0242ac130003"
+    "cancelled": "2021-03-17T10:23:48Z"
+  }
+}
+```
+
+A problem with the steering gear is detected, so the vessel sends:
+```
+{"alarm": 
+  {
+    "category": "Stearing gear alarm",
+    "id": "a934b354-86fb-11eb-8dcd-0242ac130003"
+    "raised": "2021-03-17T10:33:28Z"
+  }
+}
+```
+A ship officer acknowledges the alarm, so the vessel sends:
+```
+{"alarm": 
+  {
+    "category": "Stearing gear alarm",
+    "id": "a934b354-86fb-11eb-8dcd-0242ac130003"
+    "acknowledged": "2021-03-17T10:33:240Z"
+  }
+}
+```
+Some 30 minutes later the engineers have fixed the issue, so the vessel sends:
+```
+{"alarm": 
+  {
+    "category": "Stearing gear alarm",
+    "id": "a934b354-86fb-11eb-8dcd-0242ac130003"
+    "cancelled": "2021-03-17T11:03:17Z"
+  }
+}
+```
+
 
 ## 6. Security Considerations
 
@@ -504,6 +572,12 @@ The table below groups and names those situations.
 ## 6. References
 
 ## 6.1. Normative References
+
+[IMO-A1021]
+  [IMO Resolution A.1021(26). Code on cautions and indicators](https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.1021(26).pdf). International Maritime Organization, December 2009.
+
+[IMO-MSC252]
+  [(Adoptiopn of the revised) Performance standards for integrated navigation systems (INS)](https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/MSCResolutions/MSC.252(83).pdf). International Maritime Organization, October 2007.
 
 [AV1]
   [AV1 Bitstream & Decoding Process Specification](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)
