@@ -235,7 +235,7 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
 ### 3.1. vessel
 The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it could be known and published at the start of the sailing. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
 
-__mmsi__ the object MUST have an _mmsi_ property with the Martime Mobile Service Identifier[MMSI] string of the vessel.
+__mmsi__ the object MUST have an _mmsi_ property with the Maritime Mobile Service Identifier[MMSI] string of the vessel.
 
 __call__ the object SHOULD have a _call_ property which value SHOULD be the international radio call sign assigned to the vessel.
 
@@ -289,7 +289,7 @@ In this example the SVG drawing commands start at the keel at 5,20 (5 meters fro
 
 ![Vessel from abaft](./images/from_abaft_path.svg)
 
-__simulation__ the object MAY have a _similation_ property that when present SHOULD have a value of "true". This property MUST be included, and the value MUST be "true" whenever the vessel is a (computer) simulation, is not observed in the real world, may operate in a different time frame, etc.
+__simulation__ the object MAY have a _simulation_ property that when present SHOULD have a value of "true". This property MUST be included, and the value MUST be "true" whenever the vessel is a (computer) simulation, is not observed in the real world, may operate in a different time frame, etc.
 
 ### 3.2. streams
 
@@ -316,11 +316,13 @@ whereas a complex request for both conning and video from camera 0 could look li
       "format": "nmea"
     },
     "camera0": true,
-    "iceServers": {
-      urls: ["stun:stun.aboamare.net:5349"],
-      credential: "",
-      username: ""
-    }
+    "iceServers": [
+      {
+        urls: ["stun:stun.aboamare.net:5349"],
+        credential: "",
+        username: ""
+      }
+    ]
   }
 }
 ```
