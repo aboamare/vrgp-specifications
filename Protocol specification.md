@@ -1,6 +1,6 @@
 # Vessel Remote Guidance Protocol Specification *Draft* 0.1.0
 
-* Robert J. Aarts, March 2021
+* Robert J. Aarts, October 2021
 
 
 ## Abstract
@@ -105,7 +105,8 @@ Many of the messages specified in this memo merely convey information but some m
 ### 2.1. Registration
 Vessels register with a MOC in two steps: first the vessel opens a [WebSocket] to the MOC, and then it sends a message with its status and capabilities.
 
-Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. However the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
+Discovery of the URL of the endpoint for registration with the MOC is out of the scope of this specification. For example, a vessel might discover the registration url for a remote pilotage service by means of a query to a *MCP Service Registry*. Whereas the registration url of a remote control center for a semi-autonomous vessel is likely to be known to the vessel software in advance.   
+In any case the last part of the path of the URL SHOULD be used to convey the MMSI of the vessel. For example the URL could be:
 
     wss://amoc.aboamare.net/navigation/[mmsi]
     
@@ -125,7 +126,7 @@ As soon as the web socket is open the vessel MUST send a _message_ ([see below](
 - the description of the real-time *streams* that can be requested 
 - the possible *controls* for remote operation of the vessel, if any
 
-While the web socket connection is open the vessel MUST send a *conning* message at least every 5 seconds, but not more frequently than every 2 seconds. In addition each the vessel MUST send a *notification* for each defined caution, warning, alarm or emergency that arises, gets acknowledged or gets cancelled.
+While the web socket connection is open the vessel MUST send a *[conning](#35-conning)* message at least every 5 seconds, but not more frequently than every 2 seconds. In addition each the vessel MUST send a *[notification](#36-notifications)* for each defined caution, warning, alarm or emergency that arises, gets acknowledged or gets cancelled.
 
 #### 2.1.1. Authentication of the Vessel
 
@@ -137,11 +138,13 @@ A MOC SHOULD authenticate the vessel, and a it is RECOMMENDED that a MOC support
 
 A MOC that does support MCP certificates SHOULD request a ClientCertificate during the TLS handshake[TLS12] or [TLS13]. Such a MOC SHOULD verify the revocation status of a presented client (vessel) certificate with the Maritime Identity Register that issued the certificate. The MOC also SHOULD verify the status of the certificate of the MIR that issued the certificate.
 
-If the vessel (software) did not present a client certificate the MOC MAY request the vessel to authenticate with an MCP OIDC token, by sending an *[authenticate](#381-authenticate)* message to the vessel.
+If the vessel (software) did not present a client certificate the MOC MAY request the vessel to authenticate with an MCP OIDC token, by sending an *[authenticate](#391-authenticate)* message to the vessel.
 
 #### 2.1.2. Authentication of the MOC
 
-A Maritime Identity Registry (MIR) of the MCP will also assign an __mrn__[MRN] to the MOC and issue a PKI certificate for it. However, the MCP certificates will not be chained to a root certificate that is recognized by default by most TLS stacks. A vessel that wishes for the MOC to proof its identity MAY send an *[authenticate](#381-authenticate)* message, this message will contain a nonce. A MOC that receives an _authenticate_ message MUST as soon as possible send an *[authentication](#382-authentication)* message.
+A Maritime Identity Registry (MIR) of the MCP can assign an __mrn__[MRN] to the MOC and issue a PKI certificate for it. A MOC SHOULD register with a MIR in good status and obtain a MCP certificate. However, MCP certificates will not be chained to a root certificate that is recognized by default by most TLS stacks, so the MOC should not use the MCP certificate as a server certificate for TLS. 
+
+A vessel that wishes for the MOC to proof its identity MAY send an *[authenticate](#391-authenticate)* message, this message will contain a nonce. A MOC that receives an _authenticate_ message MUST as soon as possible send an *[authentication](#392-authentication)* message.
 
 Here is an example exchange where a vessel requires the MOC to authenticate, to proof it has an MIR-issued cert and the private key bound to it.
 
@@ -164,23 +167,28 @@ Here is an example exchange where a vessel requires the MOC to authenticate, to 
   The vessel can now unpack the authentication message value and verify the signature and certificate of the MOC.  
 
 ### 2.2. Request for Data
+The MOC can request the Vessel to open a stream of defined types of data. To this end the MOC SHOULD send a *[request](#34-request)* message. The request MUST be for one of the data streams that the Vessel has reported in the most recent *[streams](#32-streams)* message. Upon reception of a *request* message the Vessel MUST attempt to open the requested stream. If no WebRTC connection has yet been established the Vessel MUST attempt to establish the WebRTC connection and as soon as that connection is in the "open" state add the requested stream to it. If, beacuse of already established streams, a WebRTC connection already has been established earlier the Vessel MUST attempt to add the requested stream to that connection.
+
+In case the stream cannot be added the Vessel SHOULD send a *failed* message. 
+
+If the Vessel becomes aware of a problem such that it won't be able to honour requests for one or more streams that it earlier reported in a *streams* message, it should send a new *streams* message that only lists those streams that are currently available.
 
 ### 2.3. WebRTC Signalling
 To setup and maintain WebRTC connections the vessel and MOC need to send _signalling_ messages to convey _ICE candidates_ and _Session Descriptions_. In addition a MOC may want to inform a vessel about STUN and/or TURN servers that the vessel may use.
 
-To inform a WebRTC peer about an _ICECandidate_ the local WebRTC implementation SHOULD send an *[ice](#3101-ice)* message over the websocket.
-To inform a WebRTC peer about a _SessionDescription_ the local WebRTC implementation SHOULD send an *[sdp](#3102-sdp)* message over the websocket.
+To inform a WebRTC peer about an _ICECandidate_ the local WebRTC implementation SHOULD send an *[ice](#3111-ice)* message over the websocket.
+To inform a WebRTC peer about a _SessionDescription_ the local WebRTC implementation SHOULD send an *[sdp](#3112-sdp)* message over the websocket.
 
-A MOC that wishes to inform a vessel about STUN and/or TURN servers SHOULD add a *ice_servers* property to a *[request](#33-request)* (for real time data) message.
+A MOC that wishes to inform a vessel about STUN and/or TURN servers SHOULD add a *ice_servers* property to a *[request](#34-request)* (for real time data) message.
 
 ### 2.4. Hang-up
 
-To indicate the orderly close-down of the connection either party SHOULD send a *[bye](#39-bye)* message. The recipient of a *[bye](#39-bye)* message SHOULD close any WebRTC connections established with the sender, and close the WebSocket. The WebSocket MUST be closed with a 1000 CloseEvent status code, to indicate normal closure.
+To indicate the orderly close-down of the connection either party SHOULD send a *[bye](#310-bye)* message. The recipient of a *[bye](#310-bye)* message SHOULD close any WebRTC connections established with the sender, and close the WebSocket. The WebSocket MUST be closed with a 1000 CloseEvent status code, to indicate normal closure.
 
 **IMPLEMENTATION CONSIDERATION**: of course the connection between a vessel and MOC can be interrupted, broken altogether, etc. Implementations should make sure to act upon such situation and to free resources. The _bye_ message serves to keep a record of an _intentional_ closure of the connection.
 
 ## 3. Messages
-*Most* messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. However, the previous section, "[Protocol](#2-protocol)", refers to those messages that presume some action by the recipient. Examples of such messages include "[authenticate](#381-authenticate)", "[request](#33-request)", and "[bye](#39-bye)".
+*Most* messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. However, the previous section, "[Protocol](#2-protocol)", refers to those messages that presume some action by the recipient. Examples of such messages include "[authenticate](#391-authenticate)", "[request](#34-request)", and "[bye](#310-bye)".
 
 Messages are defined and sent in [JSON] format. One or more messages can be sent in a single JSON object. If a JSON object contains more than one message, the order in which those messages are processed cannot be guaranteed.
 
@@ -233,7 +241,7 @@ Messages are defined and sent in [JSON] format. One or more messages can be sent
   ```
 
 ### 3.1. vessel
-The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it could be known and published at the start of the sailing. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
+The _vessel_ message is used to convey information about the vessel that requests guidance. This includes a.o dimensions, cargo, etc. Most, if not all, of this information is "static", in that it can be assumed to remain valid for the duration of the interaction with the MOC, or indeed for the duration of the voyage. A _vessel_ message therefor MUST be __either__ a string with a URL pointing to a publicly available JSON document with a vessel object, __or__ such an object. The vessel object (in the message or JSON document) has the following properties:  
 
 __mmsi__ the object MUST have an _mmsi_ property with the Maritime Mobile Service Identifier[MMSI] string of the vessel.
 
@@ -295,7 +303,7 @@ __simulation__ the object MAY have a _simulation_ property that when present SHO
 
 ### 3.3. controls
 
-### 3.3. request
+### 3.4. request
 
 The _request_ message is sent by a MOC that wishes that the recipient vessel starts sending a data stream. The content of a request message is either a string with the name of the stream, or an object with one or more properties such that each property is a name of a stream with as value either _true_ or an object with further requirements on the requested stream. The supported further requirements are given in subsections of [Section 4](#4real-time-connections). 
 
@@ -329,13 +337,17 @@ whereas a complex request for both conning and video from camera 0 could look li
 
 A vessel that receives a request MUST attempt to open a WebRTC connection if needed and add the requested data streams to the connection, as specified in [Section 4](#4real-time-connections).
 
-### 3.4. conning
-#### 3.4.1 nmea
-#### 3.4.2 sk
+### 3.5. conning
+The conning message contains information about the current navigational state of the vessel. The message can contain data from many sensors, not all of which will always be available. However, a vessel that has registered itself with a MOC SHOULD send a *conning* message at regular intervals as specified above in *[Registration](#21-registration)*; that *conning* message: 
+
+  - MUST include the properties: *lat*, *long*, *heading*, *cog*, and *sog*,
+  - and SHOULD include *position*, *rot*, *steering*, *propulsion*, *stw*, *aws*, *awa* and *depth*, 
+  - and MAY include any of the properties listed in table below.
+
 #### predictor
 
-### 3.5. Notifications
-The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#351-debug)_ and _[info](#352-info)_ can be used rather freely, the use and content of _[caution](#353-caution)_, _[warning](#354-warning)_, _[alarm](#355-alarm)s_ and _[emergency](#356-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Cautions, warnings, alarms and emergencies](5-cautions-warnings-alarms-and-emergencies).
+### 3.6. Notifications
+The notification messages are sent by a vessel to notify the MOC of events and situations that the MOC should be aware of. Six levels of severity are defined each with their own message. Whereas _[debug](#361-debug)_ and _[info](#362-info)_ can be used rather freely, the use and content of _[caution](#363-caution)_, _[warning](#364-warning)_, _[alarm](#365-alarm)s_ and _[emergency](#366-emergency)_ messages is futher specified in the corresponding subsections below, and in [5. Cautions, warnings, alarms and emergencies](5-cautions-warnings-alarms-and-emergencies).
 
 The properties of notifications are specified in the following list, subsequent sections define which properties are used in the actual messages:
 
@@ -355,34 +367,34 @@ The properties of notifications are specified in the following list, subsequent 
 
 For particular categories and sources it can be useful to add additional information in further attributes. Rules and suggestions are given in the specific message sections.
 
-#### 3.5.1 debug
+#### 3.6.1 debug
 The _debug_ message is used to convey information that aids the development of the implementation. This message SHOULD NOT be sent by implementations in actual operational use. 
 The _debug_ message MUST have a _msg_ property with as value a string with the information.
 
-#### 3.5.2 info
+#### 3.6.2 info
 The _info_ message is used to convey information that might be useful to the MOC but is not deemed important or critical.
 The _info_ message MUST have a _msg_ property with as value a string with the information.
 
-#### 3.5.3 caution
+#### 3.6.3 caution
 The _caution_ message is used to convey information about a situation or possible issue that the MOC should take note of, is likely to require attention but does not (yet) warrant a warning or alarm. A _caution_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
  
-#### 3.5.4 warning
+#### 3.6.4 warning
 The _warning_ message is used to convey information about a situation that __requires attention__. A _warning_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
-#### 3.5.5 alarm
+#### 3.6.5 alarm
 The _alarm_ message is used to convey information about a situation that __requires *immediate* attention__. An _alarm_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
-#### 3.5.6 emergency
+#### 3.6.6 emergency
 The _emergency_ message is used to convey information about a situation where __life or vessel are in immediate danger__. An _emergency_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
-### 3.6. guidance
-#### 3.6.1. operator
-#### 3.6.2. info
-#### 3.6.3. advice
-#### 3.6.4. command
-#### 3.6.5. route
+### 3.7. guidance
+#### 3.7.1. operator
+#### 3.7.2. info
+#### 3.7.3. advice
+#### 3.7.4. command
+#### 3.7.5. route
 
-### 3.7. time
+### 3.8. time
 The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
 
 The message content MUST be an object with a property "sent" with as value the integer number of milliseconds since the Unix epoch at the moment the message was sent (created). 
@@ -410,8 +422,8 @@ Here is an example of an exchange of time messages:
 
 Of course the vessel may also initiate this sequence.
 
-### 3.8. authentication messages
-#### 3.8.1. authenticate
+### 3.9. authentication messages
+#### 3.9.1. authenticate
 The _authenticate_ message MAY be sent by the party that wishes to authenticate the other party. Typically it is the vessel that wants to authenticate the MOC. The message is an object that MUST have a _type_ property the value of which is an array of strings with authentication methods that can be used by the recipient of the message. Supported methods specified here are "mrn-cert" and "mrn-token", which stand for authentication based on a certificate as issued by a [MIR] resp. authentication with a OIDC token issued by a [MIR]. 
 
 If the list of supported authentication types includes "mrn-cert" the message MUST have a _nonce_ property with as value the base64 encoding of a random 256 bit value.
@@ -428,7 +440,7 @@ Example:
 
 The recipient of this message MUST send an _authentication_ message that refers to the nonce.
 
-#### 3.8.2. authentication
+#### 3.9.2. authentication
 A recipient of an _authenticate_ message MUST send an _authentication_ message, as soon as possible. The actual value of the _authentication_ message is dependent on the _type_ of authentication. This type must be one of those listed in the authentication message.
 
   * __mrn-cert__: for authentication based upon the MRN certificate the authenticating party MUST create a [CMS] _SignedData_ construct using the nonce as the data to sign, and SHOULD adhere to [RFC8933]. The PEM encoding of the SignedData should be used as the content of the _authentication_ message. The authenticating party SHOULD use the SHA-256 hash algorithm to create the disgest and the RSA algorithm for encryption.
@@ -457,14 +469,14 @@ A recipient of an _authenticate_ message MUST send an _authentication_ message, 
 
   NOTE: ID tokens are probably might not yet be working this way in the MCP MIR, but could be supported.
 
-##### 3.8.2.1. Authentication Errors
+##### 3.9.2.1. Authentication Errors
 In case the authenticating party cannot, or does not wish to, honour the requested authentication it MUST send an _authentication_ message with an _error_ object. The _error_ object MUST have a _code_ property which SHOULD be one of the codes listed below. In addition the _error_ object MAY have a _msg_ property with a short string that may provide further information.  
 
-### 3.9. bye
+### 3.10. bye
 
-### 3.10. WebRTC Messages
-#### 3.10.1 ice
-#### 3.10.2 sdp
+### 3.11. WebRTC Messages
+#### 3.11.1 ice
+#### 3.11.2 sdp
 
 ## 4. Real-time connections
 
