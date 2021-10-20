@@ -388,12 +388,30 @@ The _alarm_ message is used to convey information about a situation that __requi
 The _emergency_ message is used to convey information about a situation where __life or vessel are in immediate danger__. An _emergency_ message MUST have a _category_, MUST have __one of__ _raised_, _acknowledged_ or _cancelled_, and SHOULD have an _id_. [section 5](#5-cautions-warnings-alarms-and-emergencies) specifies when this message should be sent, and with what content.
 
 ### 3.7. guidance
-#### 3.7.1. operator
-#### 3.7.2. info
-#### 3.7.3. advice
-#### 3.7.4. command
-#### 3.7.5. route
+The _guidance_ message is sent by a vessel to indicate the kind of guidance it wishes to receive from the MOC. The vessel MUST include the requested _guidance_ in its initial message to to MOC. The following kinds of guidance SHOULD be recognized by a MOC:
 
+  - **advice**: information that is provided to the vessel with the implicit recommendation to take that information into account in navigation and other actions. Informally, this is equivalent to "Be adviced that....", and this is the type of guidance that is often given by VTS, weather services, etc.
+
+  - **recommendation**: this signifies a request for _recommended_ actions for the vessel to take. The vessel is likely to follow given recommendations, but might also ignore such recommendations. Informally, this type of guidance can be used for pilotage and for rescue operation instructions given by a Maritime Rescure Coordination Centre.
+
+  - **control**: this signifies a request for the MOC to take control of the (navigation of the) vessel, i.e. to send _command_ messages.
+
+#### 3.7.1. operator
+The _operator_ message is used to iform the vessel of the operator that is providing the guidance. The content of this message is a simple string that SHOULD be the MRN of the operator. A MOC SHOULD send an operator message before, or in conjunction with, the first guidance message it sends. If the operator changes while the vessel is still connected to the MOC, such a MOC SHOULD send an operator message. The goal is that the vessel can record which operator is providing the guidance.
+
+#### 3.7.2. advice
+#### 3.7.3. recommendation
+#### 3.7.4. acquire
+The _acquire_ message is send by a MOC that deems it appropriate to control one or more of the controllable aspects of the vessel.
+
+A MOC SHOULD only attempt to acquire control when the vessel has requested _control_ in its _guidance_ message.  
+The content of the _acquire_ message MUST be either a string with one of the controllable aspects of the vessel as reported in the _controls_ message, or an array with one or more of those aspects.
+
+#### 3.7.5  command
+The _command_ message is used by a MOC to change the requested value of one or more of the controllable actuators on the vessel. 
+
+#### 3.7.6. release
+#### 3.7.7. route
 ### 3.8. time
 The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
 
@@ -623,6 +641,9 @@ maritime mobile service (10/2019)](https://www.itu.int/dms_pubrec/itu-r/rec/m/R-
 
 [RFC8933]
   [Update to the Cryptographic Message Syntax (CMS) for Algorithm Identifier Protection](https://tools.ietf.org/html/rfc8933)
+
+[RTZ]
+  [IEC PAS 61174-1:2021 Maritime navigation and radiocommunication equipment and systems – Part 1: Route plan exchange format (RTZ)](https://webstore.iec.ch/publication/67774)
 
 [SVG]
   [Scalable Vector Graphics (SVG) 1.1 (Second Edition)](https://www.w3.org/TR/2011/REC-SVG11-20110816/).
