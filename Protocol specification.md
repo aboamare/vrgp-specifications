@@ -187,6 +187,23 @@ To indicate the orderly close-down of the connection either party SHOULD send a 
 
 **IMPLEMENTATION CONSIDERATION**: of course the connection between a vessel and MOC can be interrupted, broken altogether, etc. Implementations should make sure to act upon such situation and to free resources. The _bye_ message serves to keep a record of an _intentional_ closure of the connection.
 
+### 2.5. Control of the Vessel
+A vessel may wish that a MOC takes control of the vessel, such that the MOC assumes the responsibility of navigating the vessel and to this end sends commands that are intended for the steering, propulsion, and other equipment of the vessel. It is important that it is always very clear which entity has control over the navigation, and that there is only one such entity at any given time.
+
+A vessel that wishes for a MOC to control navigation MUST send a *[guidance](#37-guidance)* message with a value of `"control"`. In addition the vessel MUST send a *[controls](#33-controls)* message to indicate which systems it offers for the MOC to control.
+
+A MOC that is ready to take control of one or more of the controllable systems of the vessel MUST first acquire control of those systems, by means of the *[acquire](#374-acquire)* message.  
+A MOC MUST NOT attempt to aquire conrol of any controllable system if the most recently received *guidance* did not ask for `"control"`.  
+A MOC SHOULD NNOT attempt to aquire control of systems that were not listed in the most recent *controls* message sent by the vessel. And A MOC SHOULD NOT send *[command](#375-command) messages for any component of a controllable system that is not listed in the most recent *controls* message.
+
+A vessel that receives an *acquire* message SHOULD refrain from changing any of the (listed) setpoints of any of the components of those controllable systems that are requested in the *acquire* message with the exception that a component of a controllable system MAY continue to control another component of the same controllable system. Informally, if the autopilot is "on" it is ok that the autopilot continues to control the steering, until the MOC would turn the autopilot "off". But the vessel should no longer change autopilot parameters, such as e.g. radius, that were listed for remote control.  
+A vessel that has **not** received an *acquire* message for one of its controllable systems SHOULD ignore any *[command](#375-command)* messages for any of the components of that controllable system.  
+If a vessel upon reception of an *acquire* messages cannot, or does not wish to, yield control of any of the indicated controllable systems it MUST immediately respond with a new, possibly empty, *controls* message that lists the controllable systems that _can_ be acquired by the MOC. If the vessel no longer can, or wishes, to give any control to the MOC it SHOULD send a new *guidance* message with a value **other** than `"control"`. Likewise if for any reason the vessel no longer wants the MOC to control one or more of the controllable systems it SHOULD send a (new) *controls* message and if needed a new *guidance* message.
+
+Once a MOC has sent an acquire message it should assume responsibility of the acquired controllable systems, and can now send *[command](#375-command)* messages to change the setpoints of one or more of the components of the controlled systems.
+
+A MOC that no longer can, or no longer wishes to, control one or more of the controllable systems that it has acquired MUST send a *[takeover](#376-takeover)* message listing those systems. The MOC SHOULD continue to control those systems until the vessel sends a *[release](#377-release)* message, or until the timeout of the *takeover* message expires, whichever occurs first.
+
 ## 3. Messages
 *Most* messages are such that they do *not* follow a request/response pattern, each message essentially provides the other party with information. However, the previous section, "[Protocol](#2-protocol)", refers to those messages that presume some action by the recipient. Examples of such messages include "[authenticate](#391-authenticate)", "[request](#34-request)", and "[bye](#310-bye)".
 
@@ -402,16 +419,25 @@ The _operator_ message is used to iform the vessel of the operator that is provi
 #### 3.7.2. advice
 #### 3.7.3. recommendation
 #### 3.7.4. acquire
-The _acquire_ message is send by a MOC that deems it appropriate to control one or more of the controllable aspects of the vessel.
+The _acquire_ message is send by a MOC that deems it appropriate to control one or more of the controllable systems of the vessel.
 
-A MOC SHOULD only attempt to acquire control when the vessel has requested _control_ in its _guidance_ message.  
-The content of the _acquire_ message MUST be either a string with one of the controllable aspects of the vessel as reported in the _controls_ message, or an array with one or more of those aspects.
+A MOC should only attempt to acquire control when the vessel has requested _control_ in its _guidance_ message, as defined in [Section 2.5](#25-control-of-the-vessel).  
+The content of the _acquire_ message MUST be either a string with one of the controllable aspects of the vessel as reported in the _controls_ message, or an array with one or more of those systems.
 
 #### 3.7.5  command
-The _command_ message is used by a MOC to change the requested value of one or more of the controllable actuators on the vessel. 
+The _command_ message is used by a MOC to change the requested value of one or more of the components of a controllable system of the vessel. 
 
-#### 3.7.6. release
-#### 3.7.7. route
+#### 3.7.7. takeover
+The _takeover_ message is sent by a MOC that no longer wishes to control one or more of the controllable system of the vessel. It lists those systems and SHOULD include a timeout.
+
+The properties of a _takeover_ message are:
+  - __controls__: a string, or array of strings, indicating the controllable system(s) that the MOC no longer wishes to control
+  - __timeout__: an integer with the number of seconds that the MOC will wait for a corresponding *release* message, until then the MOC will continue to control the listed systems. If absent the vessel and MOC MUST assume a 30 seconds timeout. 
+
+#### 3.7.7. release
+
+#### 3.7.8. route
+
 ### 3.8. time
 The _time_ message is meant to determine the latency of the connection, by comparing the time that the message was received with the send time of the message.
 
