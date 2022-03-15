@@ -158,13 +158,14 @@ Here is an example exchange where a vessel requires the MOC to authenticate, to 
   }
   ```
 
-  2. The MOC now signs the nonce with the private key associated with its MIR-issued cert and sends the nonce, signature, and the certificate, as a PEM encoded PKCS7 SignedData object in an _authentication_ message:
+  2. The MOC now creates a *JSON Web Token [JWT]* that contains the nonce, the MRN of the MOC, the date, etc. as the _payload_ of the JWT. 
+  The JWT also has a URL that points to the MIR-issued certificate and the certificate chain, in the _protected headers_ of the JWT. Finally the JWT is signed with the private key associated with the certificate of the MOC. The _payload_, the _protected headers_ and the _signature_ are then encoded an concatenated in a single string, the actual"token" (all as specified by [JWT]). The JWT, as token, is then sent in an _authentication_ message:
   ```
   {
-    "authentication": "PKCS7 signature over the nonce in PEM format" 
+    "authentication": "eyJhbGciOiJFUzM4NCIsIng1dSI6Imh0dHBzOi8vbWlyLmFib2FtYXJlLm5ldC90ZXN0L2NlcnRpZmljYXRlcy8xZGEzYTExYjFhYjc2ZWE5MjZiNTFmZjk1Yzc5M2I3MWVhMTc1ZTMzLng1dSJ9.eyJub25jZSI6ImJvaFF3bmc3MksiLCJzdWIiOiJ1cm46bXJuOm1jcDppZDphYm9hbWFyZTp0ZXN0OmFib2FtYXJlLXNwaXJpdCIsImlhdCI6MTY0MDg4NTIzNSwiZXhwIjoxNjQwODkyNDM1fQ.L28PGA2L9SLrFQN9OvG9p1MLjWZX8xe9C-60i23rhW0Hvq4u00hkuTTss6EKJg0iGJiwhnZ-sZpObBLWS6vVwwft_90oWg2z-xEVzaHsu3qRqkol2bFXVclCcDcij4Gg"
   }
   ```
-  The vessel can now unpack the authentication message value and verify the signature and certificate of the MOC.  
+  The vessel can now unpack the authentication message value, i.e. the JWT and verify the signature and certificate of the MOC.  
 
 ### 2.2. Request for Data
 The MOC can request the Vessel to open a stream of defined types of data. To this end the MOC SHOULD send a *[request](#34-request)* message. The request MUST be for one of the data streams that the Vessel has reported in the most recent *[streams](#32-streams)* message. Upon reception of a *request* message the Vessel MUST attempt to open the requested stream. If no WebRTC connection has yet been established the Vessel MUST attempt to establish the WebRTC connection and as soon as that connection is in the "open" state add the requested stream to it. If, beacuse of already established streams, a WebRTC connection already has been established earlier the Vessel MUST attempt to add the requested stream to that connection.
@@ -485,33 +486,45 @@ Example:
 The recipient of this message MUST send an _authentication_ message that refers to the nonce.
 
 #### 3.9.2. authentication
-A recipient of an _authenticate_ message MUST send an _authentication_ message, as soon as possible. The actual value of the _authentication_ message is dependent on the _type_ of authentication. This type must be one of those listed in the authentication message.
+A recipient of an _authenticate_ message MUST send an _authentication_ message, as soon as possible. The actual value of the _authentication_ message is dependent on the _type_ of authentication. This type must be one of those listed in the authenticate message.
 
-  * __mrn-cert__: for authentication based upon the MRN certificate the authenticating party MUST create a [CMS] _SignedData_ construct using the nonce as the data to sign, and SHOULD adhere to [RFC8933]. The PEM encoding of the SignedData should be used as the content of the _authentication_ message. The authenticating party SHOULD use the SHA-256 hash algorithm to create the disgest and the RSA algorithm for encryption.
+__mrn-cert__   
+For authentication based upon the MRN certificate the authenticating party MUST create a *JSON Web Token[JWT]*. The _payload_ of the token MUST include the following _claims_: 
+  - _nonce_: with the nonce of the authenticate request message
+  - _sub_: with the MRN of the authenticating party
+  - _iat_: with the time the token was created
+  - _exp_: with the date the token should no longer be deemed valid. This expiration time SHOULD not be more than 24 hours later than the token creation time.  
 
+The token MUST have the following _protected headers_:  
+  - _alg_: the label of the signature alorithm. The algorithm MUST be one of the algorithms allowed in the [MCP] [MIR] specifications (currently ES384 and ES256).
+  - _x5u_: with a URL pointing to the certificate chain that starts with the certificate of the authenticating party. All certificates in the chain MUST be in accordance with the [MCP] [MIR] specifications.
+
+The authenticating party MUST sign the token with the key that is bound the the first certificate of the chain that is pointed to in the _x5u_ header. The encoded token is sent as the value of an _authentication_ message.
   E.g.:
   ```
     {
-      "authentication": "CMS signature over the nonce in PEM format" 
-    }
-  ```
-  The recipient of the _authentication_ message can now unpack the message value, i.e. the CMS payload, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
-
-  * __mrn-token__: if authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OIDC]) _Authorization Code_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OIDC] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OIDC] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
-
-  E.g.:
-  ```
-    {
-      "authentication": {
-        "url": "https://mri.aboamare.net/id_token",
-        "code": "SplxlOBeZQQYbYS6WxSbIA"
-      }
+      "authentication": "eyJhbGc...ng1dSJ9.eyJub25jZSI6I...kyNDM1fQ.L28PGA2L...Dcij4Gg" 
     }
   ```
 
-  The recipient of such _authentication_ message can now act as OIDC client and request the Identity Token from the MIR of the authenticated party. The MIR should authenticate the client, this can be done using a MCP certificate as part of the TLS handshake. 
+  The recipient of the _authentication_ message can now unpack the message value, i.e. the JWT, verify the signature and certificate of the MOC, and now has some assurance of the identity of the sender.
 
-  NOTE: ID tokens are probably might not yet be working this way in the MCP MIR, but could be supported.
+__mrn-token__  
+If authentication is done with tokens the authenticating party MUST obtain an [MCP] ([OIDC]) _Authorization Code_ from its MCP Identity Registry [MIR]. The authenticated party now MUST send an _authentication_ message with as value an object with two properties: a _url_ with as value the HTTPS URL to the _Token endpoint_ of the MIR, and a _code_ with as value the [OIDC] _Authorization Code_ that should be presented at the given endpoint. The _url_ and _code_ should be such that the MIR will respond to a request for that URL with an [OIDC] Identity Token with the claims about the authenticated party, packaged as a [JWT] token.
+
+E.g.:
+```
+  {
+    "authentication": {
+      "url": "https://mri.aboamare.net/id_token",
+      "code": "SplxlOBeZQQYbYS6WxSbIA"
+    }
+  }
+```
+
+The recipient of such _authentication_ message can now act as OIDC client and request the Identity Token from the MIR of the authenticated party. The MIR should authenticate the client, this can be done using a MCP certificate as part of the TLS handshake. 
+
+NOTE: ID tokens might not yet be working this way in the MCP MIR, but could be supported.
 
 ##### 3.9.2.1. Authentication Errors
 In case the authenticating party cannot, or does not wish to, honour the requested authentication it MUST send an _authentication_ message with an _error_ object. The _error_ object MUST have a _code_ property which SHOULD be one of the codes listed below. In addition the _error_ object MAY have a _msg_ property with a short string that may provide further information.  
